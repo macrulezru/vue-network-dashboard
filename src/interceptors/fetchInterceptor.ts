@@ -89,20 +89,17 @@ export class FetchInterceptor {
       requestBody,
       clientType: 'fetch'
     })
-    
-    // Log request start
-    this.options.onLog(logEntry)
-    
+
     try {
       // Execute original fetch
       const response = await this.originalFetch(...args)
       const endTime = Date.now()
-      
+
       // Process response
       const responseBody = await this.extractResponseBody(response)
       const responseHeaders = this.extractResponseHeaders(response)
-      
-      // Enrich log entry with response data
+
+      // Enrich log entry with response data and log once
       const enrichedEntry = this.options.formatter.http.formatResponse(logEntry, {
         status: response.status,
         statusText: response.statusText,
@@ -111,13 +108,13 @@ export class FetchInterceptor {
         endTime,
         redirected: response.redirected
       })
-      
+
       this.options.onLog(enrichedEntry)
-      
+
       return response
     } catch (error) {
       const endTime = Date.now()
-      
+
       // Create error log entry
       const errorEntry = this.options.formatter.http.formatError(
         {
@@ -131,9 +128,9 @@ export class FetchInterceptor {
         error,
         endTime
       )
-      
+
       this.options.onLog(errorEntry)
-      
+
       throw error
     }
   }

@@ -18,18 +18,17 @@ interface XHRLogContext {
   logEntry: UnifiedLogEntry
 }
 
-/**
- * Store for tracking setRequestHeader calls
- */
-interface XHRWithHeaders extends XMLHttpRequest {
-  __loggerHeaders?: Record<string, string>
-  __loggerMethod?: string
-  __loggerUrl?: string
+// Interim data stored between open() and send()
+interface XHROpenData {
+  method: string
+  url: string
+  headers: Record<string, string>
 }
 
 /**
  * Interceptor for XMLHttpRequest
- * Wraps XHR methods to log all HTTP requests and responses
+ * Wraps XHR methods to log all HTTP requests and responses.
+ * Uses WeakMaps to store per-instance data without polluting XHR objects.
  */
 export class XHRInterceptor {
   private originalOpen: typeof XMLHttpRequest.prototype.open
@@ -38,6 +37,9 @@ export class XHRInterceptor {
   private options: XHRInterceptorOptions
   private isIntercepted: boolean = false
   private activeRequests: Map<XMLHttpRequest, XHRLogContext> = new Map()
+
+  // WeakMaps store per-XHR data without adding properties to the XHR instance
+  private readonly openData: WeakMap<XMLHttpRequest, XHROpenData> = new WeakMap()
 
   constructor(options: XHRInterceptorOptions) {
     this.originalOpen = XMLHttpRequest.prototype.open
@@ -51,13 +53,13 @@ export class XHRInterceptor {
    */
   public intercept = (): void => {
     if (this.isIntercepted) return
-    
-    // Store references to methods that need to be called with correct context
+
     const originalOpen = this.originalOpen
     const originalSetRequestHeader = this.originalSetRequestHeader
     const originalSend = this.originalSend
+    const openData = this.openData
     const handleXHR = this.handleXHR.bind(this)
-    
+
     // Override XMLHttpRequest.prototype.open
     XMLHttpRequest.prototype.open = function(
       method: string,
@@ -66,33 +68,28 @@ export class XHRInterceptor {
       username?: string | null,
       password?: string | null
     ): void {
-      // Store request info on the XHR object
-      const xhr = this as XHRWithHeaders
-      xhr.__loggerMethod = method
-      xhr.__loggerUrl = url.toString()
-      xhr.__loggerHeaders = {}
-      
+      openData.set(this, { method, url: url.toString(), headers: {} })
       return originalOpen.call(this, method, url, async, username, password)
     }
-    
+
     // Override XMLHttpRequest.prototype.setRequestHeader to track headers
     XMLHttpRequest.prototype.setRequestHeader = function(
       name: string,
       value: string
     ): void {
-      const xhr = this as XHRWithHeaders
-      if (xhr.__loggerHeaders) {
-        xhr.__loggerHeaders[name] = value
+      const data = openData.get(this)
+      if (data) {
+        data.headers[name] = value
       }
       return originalSetRequestHeader.call(this, name, value)
     }
-    
+
     // Override XMLHttpRequest.prototype.send
     XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null): void {
-      handleXHR(this as XHRWithHeaders, body)
+      handleXHR(this, body)
       return originalSend.call(this, body)
     }
-    
+
     this.isIntercepted = true
   }
 
@@ -110,23 +107,20 @@ export class XHRInterceptor {
   /**
    * Handle XHR request lifecycle
    */
-  private handleXHR = (xhr: XHRWithHeaders, body?: any): void => {
-    const method = xhr.__loggerMethod || 'GET'
-    const url = xhr.__loggerUrl || ''
-    
+  private handleXHR = (xhr: XMLHttpRequest, body?: any): void => {
+    const data = this.openData.get(xhr)
+    const method = data?.method ?? 'GET'
+    const url = data?.url ?? ''
+    const requestHeaders = data?.headers ?? {}
+
     // Check if should log this request
     if (this.options.shouldLog && !this.options.shouldLog(url, method)) {
       return
     }
-    
+
     const startTime = Date.now()
-    
-    // Extract request headers from tracked headers
-    const requestHeaders = xhr.__loggerHeaders || {}
-    
-    // Process request body
     const requestBody = this.processRequestBody(body)
-    
+
     // Create initial log entry using formatter
     const logEntry = this.options.formatter.http.formatRequest({
       url,
@@ -136,7 +130,7 @@ export class XHRInterceptor {
       requestBody,
       clientType: 'xhr'
     })
-    
+
     // Store context for this request
     const context: XHRLogContext = {
       id: logEntry.id,
@@ -147,12 +141,12 @@ export class XHRInterceptor {
       requestBody,
       logEntry
     }
-    
+
     this.activeRequests.set(xhr, context)
-    
+
     // Log request start
     this.options.onLog(logEntry)
-    
+
     // Attach event listeners
     this.attachEventListeners(xhr, context)
   }
@@ -162,57 +156,50 @@ export class XHRInterceptor {
    */
   private processRequestBody = (body?: any): any => {
     if (!body) return null
-    
-    let processedBody = body
-    
-    // Try to parse if it's a string that looks like JSON
+
     if (typeof body === 'string') {
       try {
-        processedBody = JSON.parse(body)
+        return JSON.parse(body)
       } catch {
-        // Keep as string
+        return body
       }
     }
-    
-    return processedBody
+
+    return body
   }
 
   /**
    * Attach event listeners to XHR to track response
    */
   private attachEventListeners = (xhr: XMLHttpRequest, context: XHRLogContext): void => {
-    const handleLoad = () => {
-      const endTime = Date.now()
-      const processedEntry = this.processResponse(context, xhr, endTime)
-      this.options.onLog(processedEntry)
+    const cleanup = () => {
       this.activeRequests.delete(xhr)
+      this.openData.delete(xhr)
     }
-    
-    const handleError = () => {
+
+    xhr.addEventListener('load', () => {
       const endTime = Date.now()
-      const errorEntry = this.processError(context, xhr, endTime)
-      this.options.onLog(errorEntry)
-      this.activeRequests.delete(xhr)
-    }
-    
-    const handleAbort = () => {
+      this.options.onLog(this.processResponse(context, xhr, endTime))
+      cleanup()
+    })
+
+    xhr.addEventListener('error', () => {
       const endTime = Date.now()
-      const abortEntry = this.processAbort(context, xhr, endTime)
-      this.options.onLog(abortEntry)
-      this.activeRequests.delete(xhr)
-    }
-    
-    const handleTimeout = () => {
+      this.options.onLog(this.processError(context, xhr, endTime))
+      cleanup()
+    })
+
+    xhr.addEventListener('abort', () => {
       const endTime = Date.now()
-      const timeoutEntry = this.processTimeout(context, xhr, endTime)
-      this.options.onLog(timeoutEntry)
-      this.activeRequests.delete(xhr)
-    }
-    
-    xhr.addEventListener('load', handleLoad)
-    xhr.addEventListener('error', handleError)
-    xhr.addEventListener('abort', handleAbort)
-    xhr.addEventListener('timeout', handleTimeout)
+      this.options.onLog(this.processAbort(context, endTime))
+      cleanup()
+    })
+
+    xhr.addEventListener('timeout', () => {
+      const endTime = Date.now()
+      this.options.onLog(this.processTimeout(context, endTime))
+      cleanup()
+    })
   }
 
   /**
@@ -223,20 +210,14 @@ export class XHRInterceptor {
     xhr: XMLHttpRequest,
     endTime: number
   ): UnifiedLogEntry => {
-    // Extract response headers
-    const responseHeadersRaw = xhr.getAllResponseHeaders()
-    const responseHeaders = parseHeaders(responseHeadersRaw)
-    
-    // Extract response body
-    let responseBody: any = null
+    const responseHeaders = parseHeaders(xhr.getAllResponseHeaders())
     const responseBodyType = getContentType(responseHeaders)
-    
+
+    let responseBody: any = null
     try {
-      const contentType = responseBodyType
-      
-      if (contentType?.includes('application/json')) {
+      if (responseBodyType?.includes('application/json')) {
         responseBody = JSON.parse(xhr.responseText)
-      } else if (contentType?.includes('text/')) {
+      } else if (responseBodyType?.includes('text/')) {
         responseBody = xhr.responseText
       } else {
         responseBody = xhr.responseText || `[Binary: ${xhr.response?.size || 'unknown'}]`
@@ -244,8 +225,7 @@ export class XHRInterceptor {
     } catch {
       responseBody = xhr.responseText || '[Empty response]'
     }
-    
-    // Enrich log entry with response data
+
     return this.options.formatter.http.formatResponse(context.logEntry, {
       status: xhr.status,
       statusText: xhr.statusText,
@@ -282,7 +262,6 @@ export class XHRInterceptor {
    */
   private processAbort = (
     context: XHRLogContext,
-    _xhr: XMLHttpRequest,
     endTime: number
   ): UnifiedLogEntry => {
     return this.options.formatter.http.formatError(
@@ -304,7 +283,6 @@ export class XHRInterceptor {
    */
   private processTimeout = (
     context: XHRLogContext,
-    _xhr: XMLHttpRequest,
     endTime: number
   ): UnifiedLogEntry => {
     return this.options.formatter.http.formatError(

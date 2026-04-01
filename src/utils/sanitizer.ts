@@ -226,7 +226,9 @@ export const getSanitizationRules = (
     sensitiveFields: customRules?.sensitiveFields
       ? [...DEFAULT_SENSITIVE_FIELDS, ...customRules.sensitiveFields]
       : DEFAULT_SENSITIVE_FIELDS,
-    maskFields: customRules?.maskFields || DEFAULT_MASK_FIELDS,
+    maskFields: customRules?.maskFields
+      ? [...DEFAULT_MASK_FIELDS, ...customRules.maskFields]
+      : DEFAULT_MASK_FIELDS,
     maskPattern: customRules?.maskPattern
   }
 }

@@ -36,6 +36,7 @@ export class NetworkDashboard {
   private sseInterceptor: SSEInterceptor | null = null
   private isEnabled: boolean = false
   private isDev: boolean = false
+  private saveStorageTimer: ReturnType<typeof setTimeout> | null = null
 
   /**
    * Create a new NetworkDashboard instance
@@ -45,19 +46,32 @@ export class NetworkDashboard {
     this.options = {
       enabled: true,
       maxLogs: 1000,
+      devOnly: false,
+      persistToStorage: false,
+      ...options,
       interceptors: {
         fetch: true,
         xhr: true,
         websocket: true,
-        sse: true
+        sse: true,
+        ...options.interceptors
       },
-      devOnly: false,
-      persistToStorage: false,
-      ...options
+      filters: {
+        ...options.filters
+      },
+      sanitization: {
+        ...options.sanitization
+      },
+      metrics: {
+        ...options.metrics
+      },
+      callbacks: {
+        ...options.callbacks
+      }
     }
 
     // Check if in development mode
-    this.isDev = process.env.NODE_ENV === 'development'
+    this.isDev = import.meta.env.DEV
 
     // Initialize store
     this.store = new LogStoreImpl(this.options.maxLogs)
@@ -235,17 +249,23 @@ export class NetworkDashboard {
   }
 
   /**
-   * Save logs to localStorage
+   * Save logs to localStorage (debounced — max once per 500ms)
    */
   private saveToStorage = (): void => {
-    try {
-      const logs = this.store.getLogs()
-      // Only save last 100 logs to avoid storage limits
-      const toSave = logs.slice(0, 100)
-      localStorage.setItem('vue-network-dashboard', JSON.stringify(toSave))
-    } catch (error) {
-      console.error('[NetworkDashboard] Failed to save to storage:', error)
+    if (this.saveStorageTimer !== null) {
+      clearTimeout(this.saveStorageTimer)
     }
+    this.saveStorageTimer = setTimeout(() => {
+      this.saveStorageTimer = null
+      try {
+        const logs = this.store.getLogs()
+        // Only save last 100 logs to avoid storage limits
+        const toSave = logs.slice(0, 100)
+        localStorage.setItem('vue-network-dashboard', JSON.stringify(toSave))
+      } catch (error) {
+        console.error('[NetworkDashboard] Failed to save to storage:', error)
+      }
+    }, 500)
   }
 
   /**
@@ -270,9 +290,21 @@ export class NetworkDashboard {
    * Clear all logs
    */
   public clear = (): void => {
+    const flushed = this.store.getLogs()
     this.store.clear()
     if (this.options.persistToStorage) {
+      if (this.saveStorageTimer !== null) {
+        clearTimeout(this.saveStorageTimer)
+        this.saveStorageTimer = null
+      }
       localStorage.removeItem('vue-network-dashboard')
+    }
+    if (this.options.callbacks?.onFlush) {
+      try {
+        this.options.callbacks.onFlush(flushed)
+      } catch (error) {
+        console.error('[NetworkDashboard] onFlush callback error:', error)
+      }
     }
   }
 
