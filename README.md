@@ -1,6 +1,6 @@
-# Vue Network Logger
+# Vue Network Dashboard
 
-Universal network logger for Vue 3 applications. Intercepts all HTTP and WebSocket traffic with unified logging format, automatic sanitization, and reactive storage.
+Universal network dashboard for Vue 3 applications. Intercepts all HTTP and WebSocket traffic with unified logging format, automatic sanitization, and reactive storage.
 
 ## Features
 
@@ -17,7 +17,7 @@ Universal network logger for Vue 3 applications. Intercepts all HTTP and WebSock
 ## Installation
 
 ```bash
-npm install vue-network-logger
+npm install vue-network-dashboard
 ```
 
 ## Quick Start
@@ -25,11 +25,11 @@ npm install vue-network-logger
 ```typescript
 import { createApp } from 'vue'
 import App from './App.vue'
-import NetworkLogger from 'vue-network-logger'
+import NetworkDashboard from 'vue-network-dashboard'
 
 const app = createApp(App)
 
-app.use(NetworkLogger, {
+app.use(NetworkDashboard, {
   enabled: true,
   maxLogs: 1000,
   devOnly: true,
@@ -49,7 +49,7 @@ app.mount('#app')
 
 ```vue
 <script setup>
-import { useNetworkLogger } from 'vue-network-logger'
+import { useNetworkDashboard } from 'vue-network-dashboard'
 
 const {
   logs,           // Reactive array of all network logs
@@ -61,7 +61,7 @@ const {
   clear,          // Clear all logs
   getStats,       // Get detailed statistics
   export          // Export logs as JSON or CSV
-} = useNetworkLogger()
+} = useNetworkDashboard()
 
 console.log(`Total requests: ${totalRequests.value}`)
 console.log(`Average duration: ${averageDuration.value}ms`)
@@ -73,15 +73,15 @@ console.log(`Average duration: ${averageDuration.value}ms`)
 ```vue
 <template>
   <div>
-    <p>Total Requests: {{ $networkLogger.totalRequests }}</p>
-    <button @click="$networkLogger.clear()">Clear Logs</button>
+    <p>Total Requests: {{ $NetworkDashboard.totalRequests }}</p>
+    <button @click="$NetworkDashboard.clear()">Clear Logs</button>
   </div>
 </template>
 
 <script>
 export default {
   mounted() {
-    console.log(this.$networkLogger.getStatsSummary())
+    console.log(this.$NetworkDashboard.getStatsSummary())
   }
 }
 </script>
@@ -167,15 +167,15 @@ The logger provides comprehensive network statistics:
 
 ```typescript
 interface NetworkStats {
-  totalRequests: number          // Total number of requests
-  totalErrors: number            // Number of failed requests
-  averageDuration: number        // Average response time (ms)
-  totalDataSent: number          // Total bytes sent
-  totalDataReceived: number      // Total bytes received
+  totalRequests: number                     // Total number of requests
+  totalErrors: number                       // Number of failed requests
+  averageDuration: number                   // Average response time (ms)
+  totalDataSent: number                     // Total bytes sent
+  totalDataReceived: number                 // Total bytes received
   requestsByMethod: Record<string, number>  // Distribution by method
   requestsByStatus: Record<string, number>  // Distribution by status group
-  slowestRequests: UnifiedLogEntry[]       // Top 10 slowest requests
-  largestRequests: UnifiedLogEntry[]       // Top 10 largest requests
+  slowestRequests: UnifiedLogEntry[]        // Top 10 slowest requests
+  largestRequests: UnifiedLogEntry[]        // Top 10 largest requests
 }
 ```
 

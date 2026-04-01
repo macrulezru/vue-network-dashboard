@@ -1,7 +1,7 @@
 import type { Ref } from 'vue'
 import type {
   UnifiedLogEntry,
-  NetworkLoggerOptions,
+  NetworkDashboardOptions,
   NetworkStats
 } from './types'
 import { LogStore as LogStoreImpl } from '../store/logStore'
@@ -24,10 +24,10 @@ import {
  * Main Network Logger class
  * Manages all interceptors and provides unified logging interface
  */
-export class NetworkLogger {
+export class NetworkDashboard {
   private store: LogStoreImpl
   private formatter: LogFormatter
-  private options: NetworkLoggerOptions
+  private options: NetworkDashboardOptions
   private fetchInterceptor: FetchInterceptor | null = null
   private xhrInterceptor: XHRInterceptor | null = null
   private websocketInterceptor: WebSocketInterceptor | null = null
@@ -35,10 +35,10 @@ export class NetworkLogger {
   private isDev: boolean = false
 
   /**
-   * Create a new NetworkLogger instance
+   * Create a new NetworkDashboard instance
    * @param options - Configuration options
    */
-  constructor(options: NetworkLoggerOptions = {}) {
+  constructor(options: NetworkDashboardOptions = {}) {
     this.options = {
       enabled: true,
       maxLogs: 1000,
@@ -208,7 +208,7 @@ export class NetworkLogger {
       try {
         this.options.callbacks.onLog(entry)
       } catch (error) {
-        console.error('[NetworkLogger] Callback error:', error)
+        console.error('[NetworkDashboard] Callback error:', error)
       }
     }
 
@@ -226,9 +226,9 @@ export class NetworkLogger {
       const logs = this.store.getLogs()
       // Only save last 100 logs to avoid storage limits
       const toSave = logs.slice(0, 100)
-      localStorage.setItem('vue-network-logger', JSON.stringify(toSave))
+      localStorage.setItem('vue-network-dashboard', JSON.stringify(toSave))
     } catch (error) {
-      console.error('[NetworkLogger] Failed to save to storage:', error)
+      console.error('[NetworkDashboard] Failed to save to storage:', error)
     }
   }
 
@@ -237,7 +237,7 @@ export class NetworkLogger {
    */
   private loadFromStorage = (): void => {
     try {
-      const saved = localStorage.getItem('vue-network-logger')
+      const saved = localStorage.getItem('vue-network-dashboard')
       if (saved) {
         const logs = JSON.parse(saved) as UnifiedLogEntry[]
         // Restore logs in reverse order to maintain chronology
@@ -246,7 +246,7 @@ export class NetworkLogger {
         })
       }
     } catch (error) {
-      console.error('[NetworkLogger] Failed to load from storage:', error)
+      console.error('[NetworkDashboard] Failed to load from storage:', error)
     }
   }
 
@@ -256,7 +256,7 @@ export class NetworkLogger {
   public clear = (): void => {
     this.store.clear()
     if (this.options.persistToStorage) {
-      localStorage.removeItem('vue-network-logger')
+      localStorage.removeItem('vue-network-dashboard')
     }
   }
 
@@ -403,7 +403,7 @@ export class NetworkLogger {
   /**
    * Update configuration
    */
-  public updateOptions = (options: Partial<NetworkLoggerOptions>): void => {
+  public updateOptions = (options: Partial<NetworkDashboardOptions>): void => {
     const wasEnabled = this.isEnabled
     
     // Disable if currently enabled
@@ -457,7 +457,7 @@ export class NetworkLogger {
   /**
    * Get current configuration
    */
-  public getOptions = (): NetworkLoggerOptions => {
+  public getOptions = (): NetworkDashboardOptions => {
     return { ...this.options }
   }
 
@@ -469,7 +469,7 @@ export class NetworkLogger {
     this.clear()
     
     if (this.options.persistToStorage) {
-      localStorage.removeItem('vue-network-logger')
+      localStorage.removeItem('vue-network-dashboard')
     }
   }
 }

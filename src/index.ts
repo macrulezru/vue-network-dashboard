@@ -1,9 +1,9 @@
 // Core exports
-export { NetworkLogger } from './core/NetworkLogger'
+export { NetworkDashboard } from './core/NetworkDashboard'
 export { LogFormatter, HTTPFormatter, WebSocketFormatter } from './core/formatters'
 export type {
   UnifiedLogEntry,
-  NetworkLoggerOptions,
+  NetworkDashboardOptions,
   NetworkStats,
   LogStore as ILogStore,
   SanitizationRules
@@ -51,8 +51,8 @@ export {
 // Vue plugin exports
 export {
   default,
-  NetworkLoggerPlugin,
-  useNetworkLogger,
-  createNetworkLogger,
-  type VueNetworkLoggerInstance
+  NetworkDashboardPlugin,
+  useNetworkDashboard,
+  createNetworkDashboard,
+  type VueNetworkDashboardInstance
 } from './plugins/vuePlugin'

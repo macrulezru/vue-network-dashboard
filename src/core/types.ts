@@ -56,7 +56,7 @@ export interface UnifiedLogEntry {
   }
 }
 
-export interface NetworkLoggerOptions {
+export interface NetworkDashboardOptions {
   enabled?: boolean
   maxLogs?: number
   interceptors?: {
