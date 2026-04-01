@@ -1,5 +1,5 @@
 import type { App, Ref, Plugin } from 'vue'
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { NetworkLogger } from '../core/NetworkLogger'
 import type { NetworkLoggerOptions, UnifiedLogEntry, NetworkStats } from '../core/types'
 
@@ -125,7 +125,7 @@ export const NetworkLoggerPlugin: Plugin = {
       }
       
       // Send logs to devtools
-      logger.subscribe((entry) => {
+      logger.subscribe(() => {
         if (devtools.sendInspectorTree) {
           devtools.sendInspectorTree('vue-network-logger', {
             rootNodes: []

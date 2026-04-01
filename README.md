@@ -1,17 +1,18 @@
-# vue-network-dashboard# vue-network-logger
+# Vue Network Logger
 
-Universal network logger for Vue 3 applications. Intercepts all HTTP and WebSocket traffic with unified logging format.
+Universal network logger for Vue 3 applications. Intercepts all HTTP and WebSocket traffic with unified logging format, automatic sanitization, and reactive storage.
 
 ## Features
 
-- **Full Coverage** - Intercepts Fetch API, XMLHttpRequest, and WebSocket
-- **Unified Format** - All logs have consistent structure
-- **Security** - Automatically sanitizes sensitive data
-- **Metrics** - Calculates request/response sizes, duration, TTFB
-- **Vue 3 Native** - Uses Vue `ref` for reactive storage, no Pinia/Vuex required
-- **Performance** - Minimal overhead, async processing
-- **Configurable** - Extensive configuration options
+- **Full Coverage** - Intercepts Fetch API, XMLHttpRequest (XHR), and WebSocket connections
+- **Unified Format** - All logs have consistent structure regardless of the source
+- **Security First** - Automatically redacts sensitive headers and fields, masks personal data
+- **Rich Metrics** - Calculates request/response sizes, duration, TTFB, and data transfer volumes
+- **Vue 3 Native** - Uses Vue `ref` for reactive storage, no Pinia or Vuex required
+- **Zero Configuration** - Works out of the box with sensible defaults
+- **Highly Configurable** - Extensive options for filtering, sanitization, and callbacks
 - **TypeScript** - Full type definitions included
+- **Tested** - 90%+ test coverage
 
 ## Installation
 
@@ -21,7 +22,7 @@ npm install vue-network-logger
 
 ## Quick Start
 
-```ts
+```typescript
 import { createApp } from 'vue'
 import App from './App.vue'
 import NetworkLogger from 'vue-network-logger'
@@ -31,7 +32,12 @@ const app = createApp(App)
 app.use(NetworkLogger, {
   enabled: true,
   maxLogs: 1000,
-  devOnly: true
+  devOnly: true,
+  interceptors: {
+    fetch: true,
+    xhr: true,
+    websocket: true
+  }
 })
 
 app.mount('#app')
@@ -39,117 +45,137 @@ app.mount('#app')
 
 ## Usage
 
-```ts
+### Composition API
+
+```vue
 <script setup>
 import { useNetworkLogger } from 'vue-network-logger'
 
-const { logs, clear, getStats } = useNetworkLogger()
+const {
+  logs,           // Reactive array of all network logs
+  totalRequests,  // Computed: total request count
+  totalErrors,    // Computed: error count
+  averageDuration,// Computed: average response time
+  totalDataSent,  // Computed: total bytes sent
+  totalDataReceived, // Computed: total bytes received
+  clear,          // Clear all logs
+  getStats,       // Get detailed statistics
+  export          // Export logs as JSON or CSV
+} = useNetworkLogger()
 
-// All network requests are automatically logged!
-console.log(logs.value)
+console.log(`Total requests: ${totalRequests.value}`)
+console.log(`Average duration: ${averageDuration.value}ms`)
+</script>
+```
 
-// Clear logs
-clear()
+### Options API
 
-// Get statistics
-const stats = getStats()
-console.log(`Total requests: ${stats.totalRequests}`)
+```vue
+<template>
+  <div>
+    <p>Total Requests: {{ $networkLogger.totalRequests }}</p>
+    <button @click="$networkLogger.clear()">Clear Logs</button>
+  </div>
+</template>
+
+<script>
+export default {
+  mounted() {
+    console.log(this.$networkLogger.getStatsSummary())
+  }
+}
 </script>
 ```
 
 ## Configuration
 
-```ts
-interface NetworkLoggerOptions {
-  enabled?: boolean                    // Enable/disable logging
-  maxLogs?: number                     // Maximum logs to store
-  interceptors?: {
-    fetch?: boolean                    // Intercept fetch (default: true)
-    xhr?: boolean                      // Intercept XHR (default: true)
-    websocket?: boolean                // Intercept WebSocket (default: true)
-  }
-  filters?: {
-    urlPattern?: RegExp                // Only log matching URLs
-    excludeUrlPattern?: RegExp         // Exclude URLs
-    methods?: string[]                 // Only specific HTTP methods
-    statusCodes?: number[]             // Only specific status codes
-  }
-  sanitization?: {
-    sensitiveHeaders?: string[]        // Headers to redact
-    sensitiveFields?: string[]         // Body fields to redact
-    maskFields?: string[]              // Fields to partially mask
-  }
-  devOnly?: boolean                    // Only enable in development
-}
-```
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | Enable/disable logging |
+| `maxLogs` | `number` | `1000` | Maximum number of logs to store |
+| `devOnly` | `boolean` | `false` | Enable only in development mode |
+| `persistToStorage` | `boolean` | `false` | Save logs to localStorage |
+| `interceptors.fetch` | `boolean` | `true` | Intercept Fetch API requests |
+| `interceptors.xhr` | `boolean` | `true` | Intercept XMLHttpRequest |
+| `interceptors.websocket` | `boolean` | `true` | Intercept WebSocket connections |
+| `filters.urlPattern` | `RegExp` | - | Only log URLs matching pattern |
+| `filters.excludeUrlPattern` | `RegExp` | - | Exclude URLs matching pattern |
+| `filters.methods` | `string[]` | - | Only log specific HTTP methods |
+| `filters.statusCodes` | `number[]` | - | Only log specific status codes |
+| `sanitization.sensitiveHeaders` | `string[]` | Default list | Headers to redact |
+| `sanitization.sensitiveFields` | `string[]` | Default list | Body fields to remove |
+| `sanitization.maskFields` | `string[]` | Default list | Fields to partially mask |
 
-## API Reference
+## Log Entry Structure
 
-### useNetworkLogger()
-
-Returns reactive logger instance:
-
-- logs: Ref<UnifiedLogEntry[]> - Reactive array of all logs
-- clear(): () => void - Clear all logs
-- getStats(): () => NetworkStats - Get network statistics
-- export(format: 'json' | 'csv'): string - Export logs
-- enable(): () => void - Enable logging
-- disable(): () => void - Disable logging
-
-## UnifiedLogEntry Structure
-
-```ts
+```typescript
 interface UnifiedLogEntry {
-  id: string
-  type: 'http' | 'websocket'
-  startTime: number
-  endTime: number | null
-  duration: number | null
-  url: string
-  method: string
+  id: string                    // Unique identifier
+  type: 'http' | 'websocket'    // Request type
   
-  http: {
-    status: number | null
-    statusText: string | null
-    protocol: string | null
-  } | null
+  // Timing
+  startTime: number             // Timestamp when request started
+  endTime: number | null        // Timestamp when request completed
+  duration: number | null       // Response time in milliseconds
   
-  websocket: {
-    readyState: number
-    eventType: string
-    direction: 'incoming' | 'outgoing' | null
-  } | null
+  // Request info
+  url: string                   // Full URL
+  method: string                // HTTP method or WebSocket event
   
+  // Headers
   requestHeaders: Record<string, string>
   responseHeaders: Record<string, string>
   
+  // Body data
   request: {
-    body: any
-    bodyRaw: string | null
-    bodySize: number | null
-    bodyType: string | null
+    body: any                   // Parsed request body
+    bodySize: number | null     // Size in bytes
+    bodyType: string | null     // MIME type
   }
   
   response: {
-    body: any
-    bodyRaw: string | null
-    bodySize: number | null
-    bodyType: string | null
+    body: any                   // Parsed response body
+    bodySize: number | null     // Size in bytes
+    bodyType: string | null     // MIME type
   }
   
+  // Error info
   error: {
     occurred: boolean
     message: string | null
     name: string | null
-    stack: string | null
   }
   
+  // Metadata
   metadata: {
     clientType: 'fetch' | 'xhr' | 'websocket'
     redirected: boolean
-    retryCount: number
     timestamp: string
   }
+}
+```
+
+## Security Features
+
+- **Header Redaction**: Automatically redacts `authorization`, `cookie`, `x-api-key`, and other sensitive headers
+- **Field Removal**: Removes `password`, `token`, `secret`, and other sensitive fields from request/response bodies
+- **Data Masking**: Partially masks `email`, `phone`, `address` fields (e.g., `us***@example.com`)
+
+## Statistics
+
+The logger provides comprehensive network statistics:
+
+```typescript
+interface NetworkStats {
+  totalRequests: number          // Total number of requests
+  totalErrors: number            // Number of failed requests
+  averageDuration: number        // Average response time (ms)
+  totalDataSent: number          // Total bytes sent
+  totalDataReceived: number      // Total bytes received
+  requestsByMethod: Record<string, number>  // Distribution by method
+  requestsByStatus: Record<string, number>  // Distribution by status group
+  slowestRequests: UnifiedLogEntry[]       // Top 10 slowest requests
+  largestRequests: UnifiedLogEntry[]       // Top 10 largest requests
 }
 ```
 
