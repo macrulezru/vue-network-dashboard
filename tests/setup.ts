@@ -1,5 +1,62 @@
 import { vi, beforeEach } from 'vitest'
-import '@vitest/web-worker'
+
+// Create localStorage mock with spy functions
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+}
+
+// Define localStorage on global
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+  configurable: true
+})
+
+// Mock window with localStorage
+Object.defineProperty(global, 'window', {
+  value: {
+    fetch: vi.fn(),
+    localStorage: localStorageMock,
+    XMLHttpRequest: class {
+      open = vi.fn()
+      send = vi.fn()
+      setRequestHeader = vi.fn()
+      addEventListener = vi.fn()
+      getAllResponseHeaders = vi.fn(() => '')
+      getResponseHeader = vi.fn()
+      status = 0
+      statusText = ''
+      responseText = ''
+      response = null
+    },
+    WebSocket: class {
+      constructor() {}
+      send = vi.fn()
+      addEventListener = vi.fn()
+      close = vi.fn()
+    }
+  },
+  writable: true,
+  configurable: true
+})
+
+// Mock document for Vue Test Utils
+Object.defineProperty(global, 'document', {
+  value: {
+    createElement: vi.fn(),
+    body: {
+      appendChild: vi.fn(),
+      removeChild: vi.fn()
+    }
+  },
+  writable: true,
+  configurable: true
+})
 
 // Mock crypto.randomUUID
 if (!globalThis.crypto) {
@@ -113,6 +170,7 @@ if (typeof Response === 'undefined') {
     headers: Headers
     bodyUsed: boolean = false
     private bodyData: any
+    redirected: boolean = false
     
     constructor(body?: any, init?: { status?: number; statusText?: string; headers?: HeadersInit }) {
       this.status = init?.status || 200
@@ -146,10 +204,10 @@ if (typeof Response === 'undefined') {
   }
 }
 
-// Mock fetch
-globalThis.fetch = vi.fn()
-
 // Clean up between tests
 beforeEach(() => {
   vi.clearAllMocks()
 })
+
+// Export localStorage mock for use in tests
+export { localStorageMock }
