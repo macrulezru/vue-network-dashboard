@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type UserConfig } from 'vite'
 import { resolve } from 'path'
 import vue from '@vitejs/plugin-vue'
 import dts from 'vite-plugin-dts'
 
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command }): UserConfig => {
   // Development mode - run demo
   if (command === 'serve') {
     return {
@@ -50,7 +50,7 @@ export default defineConfig(({ command }) => {
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: `@import "@/view/styles/variables.scss";`
+          api: 'modern-compiler'
         }
       }
     },

@@ -1,7 +1,7 @@
 import type { Ref } from 'vue'
 import { ref } from 'vue'
 import type { UnifiedLogEntry, LogStore as ILogStore, NetworkStats } from '../core/types'
-import { formatBytes } from '../utils/helpers'
+
 
 /**
  * Log store for managing network logs with reactive state
@@ -48,14 +48,14 @@ export class LogStore implements ILogStore {
    * Automatically maintains maxLogs limit (FIFO)
    */
   public addLog = (entry: UnifiedLogEntry): void => {
-    // Add to beginning (newest first)
-    this.logsRef.value = [entry, ...this.logsRef.value]
-    
-    // Trim if exceeds max size
+    // Add to beginning (newest first) via mutation — avoids full array copy
+    this.logsRef.value.unshift(entry)
+
+    // Trim oldest entry if limit exceeded — avoids re-allocating the whole array
     if (this.logsRef.value.length > this.maxLogs) {
-      this.logsRef.value = this.logsRef.value.slice(0, this.maxLogs)
+      this.logsRef.value.pop()
     }
-    
+
     // Notify listeners
     this.notifyListeners(entry)
   }
@@ -308,35 +308,6 @@ export class LogStore implements ILogStore {
     }
     
     return ''
-  }
-
-  /**
-   * Get formatted statistics summary
-   */
-  public getStatsSummary = (): string => {
-    const stats = this.getStats()
-    
-    const lines = [
-      '=== Network Statistics ===',
-      `Total Requests: ${stats.totalRequests}`,
-      `Total Errors: ${stats.totalErrors} (${stats.totalRequests ? ((stats.totalErrors / stats.totalRequests) * 100).toFixed(1) : 0}%)`,
-      `Average Duration: ${stats.averageDuration.toFixed(2)}ms`,
-      `Total Data Sent: ${formatBytes(stats.totalDataSent)}`,
-      `Total Data Received: ${formatBytes(stats.totalDataReceived)}`,
-      `SSE Events: ${stats.sseEventCount}`,
-      '',
-      'Requests by Method:',
-      ...Object.entries(stats.requestsByMethod).map(([method, count]) => 
-        `  ${method}: ${count}`
-      ),
-      '',
-      'Requests by Status:',
-      ...Object.entries(stats.requestsByStatus).map(([status, count]) => 
-        `  ${status}: ${count}`
-      )
-    ]
-    
-    return lines.join('\n')
   }
 
   /**

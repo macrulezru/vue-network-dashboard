@@ -17,7 +17,7 @@ export interface VueNetworkDashboardInstance {
   getStats: () => NetworkStats
   getStatsSummary: () => string
   export: (format?: 'json' | 'csv') => string
-  getLogsByType: (type: 'http' | 'websocket') => UnifiedLogEntry[]
+  getLogsByType: (type: 'http' | 'websocket' | 'sse') => UnifiedLogEntry[]
   getLogsByUrl: (urlPattern: string | RegExp) => UnifiedLogEntry[]
   getLogsByStatus: (statusRange: [number, number]) => UnifiedLogEntry[]
   getLogsByMethod: (method: string) => UnifiedLogEntry[]
