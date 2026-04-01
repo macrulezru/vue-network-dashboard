@@ -1,7 +1,6 @@
 import type { UnifiedLogEntry } from './types'
 import { generateId, getContentType } from '../utils/helpers'
 import { calculateSize, safeStringify, getDataType } from '../utils/sizeCalculator'
-import { sanitizeHeaders, sanitizeBody } from '../utils/sanitizer'
 
 export interface FormatHTTPParams {
   id?: string
@@ -183,9 +182,9 @@ export class HTTPFormatter {
       duration,
       error: {
         occurred: true,
-        message: error.message || 'Unknown error',
-        name: error.name || 'Error',
-        stack: error.stack || null
+        message: error?.message || 'Unknown error',
+        name: error?.name || 'Error',
+        stack: error?.stack || null
       },
       metadata: {
         ...logEntry.metadata,
