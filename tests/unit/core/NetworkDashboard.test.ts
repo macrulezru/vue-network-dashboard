@@ -14,7 +14,8 @@ describe('NetworkDashboard', () => {
       interceptors: {
         fetch: false,
         xhr: false,
-        websocket: false
+        websocket: false,
+        sse: false
       }
     })
   })
@@ -48,7 +49,7 @@ describe('NetworkDashboard', () => {
         filters: {
           urlPattern: /\/api\//
         },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       filteredLogger.destroy()
@@ -60,7 +61,7 @@ describe('NetworkDashboard', () => {
         filters: {
           excludeUrlPattern: /\/health/
         },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       filteredLogger.destroy()
@@ -72,7 +73,7 @@ describe('NetworkDashboard', () => {
         filters: {
           methods: ['GET', 'POST']
         },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       filteredLogger.destroy()
@@ -84,7 +85,7 @@ describe('NetworkDashboard', () => {
         filters: {
           statusCodes: [200, 201]
         },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       filteredLogger.destroy()
@@ -96,7 +97,7 @@ describe('NetworkDashboard', () => {
         filters: {
           bodySizeThreshold: 1024
         },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       filteredLogger.destroy()
@@ -109,7 +110,7 @@ describe('NetworkDashboard', () => {
         enabled: false,
         persistToStorage: true,
         maxLogs: 10,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const log: UnifiedLogEntry = {
@@ -122,6 +123,7 @@ describe('NetworkDashboard', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -152,6 +154,7 @@ describe('NetworkDashboard', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -165,7 +168,7 @@ describe('NetworkDashboard', () => {
       const storageLogger = new NetworkDashboard({
         enabled: false,
         persistToStorage: true,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(storageLogger.getSize()).toBe(1)
@@ -180,7 +183,7 @@ describe('NetworkDashboard', () => {
       const callbackLogger = new NetworkDashboard({
         enabled: false,
         callbacks: { onLog },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const log: UnifiedLogEntry = {
@@ -193,6 +196,7 @@ describe('NetworkDashboard', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -215,7 +219,7 @@ describe('NetworkDashboard', () => {
       const callbackLogger = new NetworkDashboard({
         enabled: false,
         callbacks: { onLog },
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const log: UnifiedLogEntry = {
@@ -228,6 +232,7 @@ describe('NetworkDashboard', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -253,7 +258,7 @@ describe('NetworkDashboard', () => {
       const devLogger = new NetworkDashboard({
         enabled: true,
         devOnly: true,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(devLogger.getEnabled()).toBe(false)
@@ -269,7 +274,7 @@ describe('NetworkDashboard', () => {
       const devLogger = new NetworkDashboard({
         enabled: true,
         devOnly: true,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(devLogger.getEnabled()).toBe(true)
@@ -309,6 +314,7 @@ describe('NetworkDashboard', () => {
     it('should return empty array when no logs', () => {
       expect(logger.getLogsByType('http')).toEqual([])
       expect(logger.getLogsByType('websocket')).toEqual([])
+      expect(logger.getLogsByType('sse')).toEqual([])
     })
   })
   
@@ -325,6 +331,7 @@ describe('NetworkDashboard', () => {
       expect(stats.requestsByStatus).toEqual({})
       expect(stats.slowestRequests).toEqual([])
       expect(stats.largestRequests).toEqual([])
+      expect(stats.sseEventCount).toBe(0)
     })
   })
   

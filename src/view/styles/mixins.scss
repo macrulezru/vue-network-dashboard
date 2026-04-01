@@ -1,0 +1,87 @@
+@use 'variables' as *;
+
+// Flexbox mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// Scrollbar styling
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $bg-primary;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $bg-active;
+    border-radius: 3px;
+
+    &:hover {
+      background: $text-muted;
+    }
+  }
+}
+
+// Text truncation
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Method badge styling
+@mixin method-badge($bg-color, $text-color) {
+  background: $bg-color;
+  color: $text-color;
+}
+
+// Status badge styling
+@mixin status-badge($bg-color, $text-color) {
+  background: $bg-color;
+  color: $text-color;
+}
+
+// Card styling
+@mixin card {
+  background: $bg-secondary;
+  border-radius: $border-radius-lg;
+  border: 1px solid $border-color;
+}
+
+// Hover effect
+@mixin hover-effect {
+  transition: $transition-fast;
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+// Button reset
+@mixin button-reset {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: $transition-fast;
+
+  &:focus {
+    outline: none;
+  }
+}

@@ -184,7 +184,7 @@ describe('WebSocketFormatter', () => {
       
       expect(entry.type).toBe('websocket')
       expect(entry.url).toBe(params.url)
-      expect(entry.method).toBe('WEBSOCKET')
+      expect(entry.method).toBe('WS CONNECTING')
       expect(entry.websocket?.eventType).toBe('connection')
     })
     
@@ -219,7 +219,7 @@ describe('WebSocketFormatter', () => {
       
       const entry = formatter.format(params)
       
-      expect(entry.method).toBe('WS ←')
+      expect(entry.method).toBe('WS ← message')
       expect(entry.websocket?.eventType).toBe('message')
       expect(entry.websocket?.direction).toBe('incoming')
       expect(entry.response.body).toEqual({ text: 'Hello' })
@@ -237,7 +237,7 @@ describe('WebSocketFormatter', () => {
       
       const entry = formatter.format(params)
       
-      expect(entry.method).toBe('WS →')
+      expect(entry.method).toBe('WS → message')
       expect(entry.websocket?.direction).toBe('outgoing')
       expect(entry.response.body).toEqual({ action: 'ping' })
     })
@@ -318,7 +318,6 @@ describe('LogFormatter', () => {
     const formatter = new LogFormatter()
     formatter.updateOptions({ sanitizeHeaders, sanitizeBody })
     
-    // Verify formatters are recreated with new options
     expect(formatter.http).toBeInstanceOf(HTTPFormatter)
     expect(formatter.websocket).toBeInstanceOf(WebSocketFormatter)
   })

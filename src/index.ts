@@ -56,3 +56,6 @@ export {
   createNetworkDashboard,
   type VueNetworkDashboardInstance
 } from './plugins/vuePlugin'
+
+// UI Component exports
+export { NetworkDebugger, type NetworkDebuggerProps } from './view'
