@@ -15,7 +15,21 @@ export const generateId = (): string => {
 export const safeClone = <T>(obj: T): T => {
   try {
     return JSON.parse(JSON.stringify(obj))
-  } catch {
+  } catch (error) {
+    // Handle circular references by returning a simplified version
+    if (error instanceof TypeError && error.message.includes('circular')) {
+      const seen = new WeakSet()
+      const replacer = (key: string, value: any): any => {
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            return '[Circular]'
+          }
+          seen.add(value)
+        }
+        return value
+      }
+      return JSON.parse(JSON.stringify(obj, replacer))
+    }
     return obj
   }
 }
