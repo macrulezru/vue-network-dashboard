@@ -16,14 +16,6 @@ interface WebSocketLogContext {
 }
 
 /**
- * Extended WebSocket type with custom properties
- */
-interface ExtendedWebSocket extends WebSocket {
-  __loggerId?: string
-  __loggerStartTime?: number
-}
-
-/**
  * Interceptor for WebSocket
  * Wraps WebSocket constructor to log all WebSocket connections and messages
  */
@@ -44,17 +36,14 @@ export class WebSocketInterceptor {
   public intercept = (): void => {
     if (this.isIntercepted) return
     
-    const self = this
-    
-    // Create a new constructor function
-    const InterceptedWebSocket = function(
-      url: string | URL,
-      protocols?: string | string[]
-    ): WebSocket {
-      const ws = new self.originalWebSocket(url, protocols)
-      self.wrapWebSocket(ws, url.toString())
-      return ws
-    } as unknown as typeof WebSocket
+    // Create a new constructor function using arrow function to capture this
+    const InterceptedWebSocket = ((originalWebSocket: typeof WebSocket, wrapWebSocket: (ws: WebSocket, url: string) => void) => {
+      return function(url: string | URL, protocols?: string | string[]): WebSocket {
+        const ws = new originalWebSocket(url, protocols)
+        wrapWebSocket(ws, url.toString())
+        return ws
+      }
+    })(this.originalWebSocket, this.wrapWebSocket.bind(this)) as unknown as typeof WebSocket
     
     // Copy static properties from original
     Object.defineProperty(InterceptedWebSocket, 'CONNECTING', {

@@ -1,15 +1,15 @@
 {
-  "name": "vue-network-logger",
+  "name": "vue-network-dashboard",
   "version": "0.1.0",
   "description": "Universal network logger for Vue 3 applications - intercepts HTTP and WebSocket traffic",
   "type": "module",
-  "main": "./dist/vue-network-logger.umd.js",
-  "module": "./dist/vue-network-logger.esm.js",
+  "main": "./dist/vue-network-dashboard.umd.js",
+  "module": "./dist/vue-network-dashboard.esm.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/vue-network-logger.esm.js",
-      "require": "./dist/vue-network-logger.umd.js",
+      "import": "./dist/vue-network-dashboard.esm.js",
+      "require": "./dist/vue-network-dashboard.umd.js",
       "types": "./dist/types/index.d.ts"
     }
   },
@@ -22,7 +22,6 @@
     "dev": "vite build --watch",
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest",
-    "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -41,7 +40,19 @@
     "debugging",
     "monitoring"
   ],
-  "author": "Your Name",
+  "author": {
+    "name": "Danil Lisin",
+    "email": "macrulezru@gmail.com",
+    "url": "https://macrulez.ru"
+  },
+  "homepage": "https://macrulez.ru",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/macrulezru/vue-network-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/macrulezru/vue-network-dashboard/issues"
+  },
   "license": "MIT",
   "peerDependencies": {
     "vue": "^3.0.0"

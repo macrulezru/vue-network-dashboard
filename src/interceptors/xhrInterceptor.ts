@@ -1,7 +1,6 @@
 import type { UnifiedLogEntry } from '../core/types'
 import { LogFormatter } from '../core/formatters'
 import { getContentType, parseHeaders } from '../utils/helpers'
-import { calculateSize, safeStringify } from '../utils/sizeCalculator'
 
 export interface XHRInterceptorOptions {
   onLog: (entry: UnifiedLogEntry) => void
@@ -53,7 +52,11 @@ export class XHRInterceptor {
   public intercept = (): void => {
     if (this.isIntercepted) return
     
-    const self = this
+    // Store references to methods that need to be called with correct context
+    const originalOpen = this.originalOpen
+    const originalSetRequestHeader = this.originalSetRequestHeader
+    const originalSend = this.originalSend
+    const handleXHR = this.handleXHR.bind(this)
     
     // Override XMLHttpRequest.prototype.open
     XMLHttpRequest.prototype.open = function(
@@ -69,7 +72,7 @@ export class XHRInterceptor {
       xhr.__loggerUrl = url.toString()
       xhr.__loggerHeaders = {}
       
-      return self.originalOpen.call(this, method, url, async, username, password)
+      return originalOpen.call(this, method, url, async, username, password)
     }
     
     // Override XMLHttpRequest.prototype.setRequestHeader to track headers
@@ -81,13 +84,13 @@ export class XHRInterceptor {
       if (xhr.__loggerHeaders) {
         xhr.__loggerHeaders[name] = value
       }
-      return self.originalSetRequestHeader.call(this, name, value)
+      return originalSetRequestHeader.call(this, name, value)
     }
     
     // Override XMLHttpRequest.prototype.send
     XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null): void {
-      self.handleXHR(this as XHRWithHeaders, body)
-      return self.originalSend.call(this, body)
+      handleXHR(this as XHRWithHeaders, body)
+      return originalSend.call(this, body)
     }
     
     this.isIntercepted = true

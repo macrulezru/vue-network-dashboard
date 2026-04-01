@@ -6,9 +6,9 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'VueNetworkLogger',
+      name: 'VueNetworkDashboard',
       formats: ['es', 'umd'],
-      fileName: (format) => `vue-network-logger.${format === 'es' ? 'esm' : 'umd'}.js`
+      fileName: (format) => `vue-network-dashboard.${format === 'es' ? 'esm' : 'umd'}.js`
     },
     rollupOptions: {
       external: ['vue'],

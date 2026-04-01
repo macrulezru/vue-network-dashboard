@@ -1,7 +1,6 @@
 import type { UnifiedLogEntry } from '../core/types'
 import { LogFormatter } from '../core/formatters'
 import { getContentType } from '../utils/helpers'
-import { calculateSize, safeStringify } from '../utils/sizeCalculator'
 
 export interface FetchInterceptorOptions {
   onLog: (entry: UnifiedLogEntry) => void
@@ -29,10 +28,11 @@ export class FetchInterceptor {
   public intercept = (): void => {
     if (this.isIntercepted) return
     
-    const self = this
+    // Store reference to wrappedFetch method
+    const wrappedFetch = this.wrappedFetch.bind(this)
     
     window.fetch = async function(...args: Parameters<typeof fetch>) {
-      return self.wrappedFetch(...args)
+      return wrappedFetch(...args)
     }
     
     this.isIntercepted = true
