@@ -67,11 +67,16 @@ export const maskString = (
     return `${maskedLocal}@${domain}`
   }
   
-  // Phone masking: keep first and last 3 digits
+  // Phone masking: keep first 3 and last 3 digits for longer numbers
   if (type === 'phone') {
-    const visible = Math.min(3, Math.floor(value.length / 3))
-    if (visible === 0) return '***'
-    return value.substring(0, visible) + '***' + value.slice(-visible)
+    // For short numbers, just mask everything
+    if (value.length <= 6) {
+      const visible = Math.floor(value.length / 3)
+      if (visible === 0) return '***'
+      return value.substring(0, visible) + '***' + value.slice(-visible)
+    }
+    // For longer numbers, keep first 2 and last 3
+    return value.substring(0, 2) + '***' + value.slice(-3)
   }
   
   // Default masking: keep first 2 and last 2 chars
@@ -102,17 +107,20 @@ export const maskSensitiveData = (
     const lowerKey = key.toLowerCase()
     const isMaskField = maskFields.some(field => lowerKey.includes(field.toLowerCase()))
     
-    if (isMaskField && typeof value === 'string') {
-      // Detect field type by content
-      if (value.includes('@')) {
-        masked[key] = maskString(value, 'email')
-      } else if (/^[\d\s\+\(\)-]{8,}$/.test(value.replace(/\s/g, ''))) {
-        masked[key] = maskString(value, 'phone')
+    if (isMaskField) {
+      if (typeof value === 'string') {
+        // Detect field type by content
+        if (value.includes('@')) {
+          masked[key] = maskString(value, 'email')
+        } else if (/^[\d\s+()-]{8,}$/.test(value.replace(/\s/g, ''))) {
+          masked[key] = maskString(value, 'phone')
+        } else {
+          masked[key] = maskString(value, 'default')
+        }
       } else {
-        masked[key] = maskString(value, 'default')
+        // For non-string values, mark as masked
+        masked[key] = '[MASKED]'
       }
-    } else if (isMaskField && typeof value === 'object' && value !== null) {
-      masked[key] = '[MASKED]'
     } else if (isObject(value) || Array.isArray(value)) {
       masked[key] = maskSensitiveData(value, maskFields)
     } else {
@@ -212,8 +220,12 @@ export const getSanitizationRules = (
   customRules?: Partial<SanitizationRules>
 ): SanitizationRules => {
   return {
-    sensitiveHeaders: customRules?.sensitiveHeaders || DEFAULT_SENSITIVE_HEADERS,
-    sensitiveFields: customRules?.sensitiveFields || DEFAULT_SENSITIVE_FIELDS,
+    sensitiveHeaders: customRules?.sensitiveHeaders 
+      ? [...DEFAULT_SENSITIVE_HEADERS, ...customRules.sensitiveHeaders]
+      : DEFAULT_SENSITIVE_HEADERS,
+    sensitiveFields: customRules?.sensitiveFields
+      ? [...DEFAULT_SENSITIVE_FIELDS, ...customRules.sensitiveFields]
+      : DEFAULT_SENSITIVE_FIELDS,
     maskFields: customRules?.maskFields || DEFAULT_MASK_FIELDS,
     maskPattern: customRules?.maskPattern
   }

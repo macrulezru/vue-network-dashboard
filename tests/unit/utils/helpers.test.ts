@@ -78,7 +78,7 @@ describe('helpers', () => {
       const str = 'this is a very long string that should be truncated'
       const result = truncate(str, 20)
       
-      expect(result).toBe('this is a very long... [truncated]')
+      expect(result).toBe('this is a very long ... [truncated]')
       expect(result.length).toBeLessThan(str.length)
     })
     

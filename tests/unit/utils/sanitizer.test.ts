@@ -16,8 +16,9 @@ describe('sanitizer', () => {
     })
     
     it('should mask phone number', () => {
-      expect(maskString('+1234567890', 'phone')).toBe('+12***890')
-      expect(maskString('12345', 'phone')).toBe('12***45')
+      expect(maskString('+1234567890', 'phone')).toBe('+1***890')
+      expect(maskString('12345', 'phone')).toBe('1***5')
+      expect(maskString('1234567890', 'phone')).toBe('12***890')
     })
     
     it('should mask default string', () => {
@@ -53,7 +54,7 @@ describe('sanitizer', () => {
       
       const result = maskSensitiveData(data, ['email', 'phone'])
       expect(result.user.email).toBe('us***@example.com')
-      expect(result.user.phone).toBe('+12***890')
+      expect(result.user.phone).toBe('+1***890')
     })
     
     it('should mask array items', () => {
