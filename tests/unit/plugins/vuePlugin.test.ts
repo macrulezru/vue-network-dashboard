@@ -1,31 +1,31 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createApp } from 'vue'
-import NetworkLoggerPlugin, { useNetworkLogger, createNetworkLogger } from '../../../src/plugins/vuePlugin'
+import NetworkDashboardPlugin, { useNetworkDashboard, createNetworkDashboard } from '../../../src/plugins/vuePlugin'
 import type { UnifiedLogEntry } from '../../../src/core/types'
 
 describe('Vue Plugin', () => {
-  describe('NetworkLoggerPlugin', () => {
+  describe('NetworkDashboardPlugin', () => {
     it('should install plugin', () => {
       const app = createApp({})
       
-      app.use(NetworkLoggerPlugin, { enabled: false })
+      app.use(NetworkDashboardPlugin, { enabled: false })
       
-      expect(app.config.globalProperties.$networkLogger).toBeDefined()
+      expect(app.config.globalProperties.$NetworkDashboard).toBeDefined()
     })
     
     it('should provide logger to components', () => {
       const app = createApp({})
       
-      app.use(NetworkLoggerPlugin, { enabled: false })
+      app.use(NetworkDashboardPlugin, { enabled: false })
       
-      expect(app._context.provides).toHaveProperty('networkLogger')
+      expect(app._context.provides).toHaveProperty('NetworkDashboard')
     })
     
     it('should cleanup on app unmount', () => {
       const app = createApp({})
-      app.use(NetworkLoggerPlugin, { enabled: false })
+      app.use(NetworkDashboardPlugin, { enabled: false })
       
-      const destroySpy = vi.spyOn(app.config.globalProperties.$networkLogger._logger, 'destroy')
+      const destroySpy = vi.spyOn(app.config.globalProperties.$NetworkDashboard._logger, 'destroy')
       
       app.unmount()
       
@@ -33,19 +33,19 @@ describe('Vue Plugin', () => {
     })
   })
   
-  describe('useNetworkLogger', () => {
+  describe('useNetworkDashboard', () => {
     it('should be available as a function', () => {
-      expect(typeof useNetworkLogger).toBe('function')
+      expect(typeof useNetworkDashboard).toBe('function')
     })
     
     it('should throw error when not in Vue context', () => {
-      expect(() => useNetworkLogger()).toThrow()
+      expect(() => useNetworkDashboard()).toThrow()
     })
   })
   
-  describe('createNetworkLogger', () => {
+  describe('createNetworkDashboard', () => {
     it('should create standalone logger', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -58,7 +58,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should have reactive logs', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -67,7 +67,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should provide computed stats', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -80,7 +80,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should provide all methods', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -102,7 +102,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should update stats when logs are added', async () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -164,7 +164,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should clear logs', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -197,7 +197,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should enable and disable logging', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -212,7 +212,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should export logs', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -225,7 +225,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should get logs by type', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })
@@ -281,7 +281,7 @@ describe('Vue Plugin', () => {
     })
     
     it('should subscribe to new logs', () => {
-      const logger = createNetworkLogger({ 
+      const logger = createNetworkDashboard({ 
         enabled: false,
         interceptors: { fetch: false, xhr: false, websocket: false }
       })

@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { NetworkLogger } from '../../../src/core/NetworkLogger'
+import { NetworkDashboard } from '../../../src/core/NetworkDashboard'
 import type { UnifiedLogEntry } from '../../../src/core/types'
 import { localStorageMock } from '../../setup'
 
-describe('NetworkLogger', () => {
-  let logger: NetworkLogger
+describe('NetworkDashboard', () => {
+  let logger: NetworkDashboard
   
   beforeEach(() => {
     vi.clearAllMocks()
-    logger = new NetworkLogger({
+    logger = new NetworkDashboard({
       enabled: false,
       maxLogs: 100,
       interceptors: {
@@ -43,7 +43,7 @@ describe('NetworkLogger', () => {
   
   describe('filters', () => {
     it('should filter by URL pattern', () => {
-      const filteredLogger = new NetworkLogger({
+      const filteredLogger = new NetworkDashboard({
         enabled: false,
         filters: {
           urlPattern: /\/api\//
@@ -55,7 +55,7 @@ describe('NetworkLogger', () => {
     })
     
     it('should filter by exclude URL pattern', () => {
-      const filteredLogger = new NetworkLogger({
+      const filteredLogger = new NetworkDashboard({
         enabled: false,
         filters: {
           excludeUrlPattern: /\/health/
@@ -67,7 +67,7 @@ describe('NetworkLogger', () => {
     })
     
     it('should filter by HTTP methods', () => {
-      const filteredLogger = new NetworkLogger({
+      const filteredLogger = new NetworkDashboard({
         enabled: false,
         filters: {
           methods: ['GET', 'POST']
@@ -79,7 +79,7 @@ describe('NetworkLogger', () => {
     })
     
     it('should filter by status codes', () => {
-      const filteredLogger = new NetworkLogger({
+      const filteredLogger = new NetworkDashboard({
         enabled: false,
         filters: {
           statusCodes: [200, 201]
@@ -91,7 +91,7 @@ describe('NetworkLogger', () => {
     })
     
     it('should filter by body size threshold', () => {
-      const filteredLogger = new NetworkLogger({
+      const filteredLogger = new NetworkDashboard({
         enabled: false,
         filters: {
           bodySizeThreshold: 1024
@@ -105,7 +105,7 @@ describe('NetworkLogger', () => {
   
   describe('persistToStorage', () => {
     it('should save logs to localStorage', () => {
-      const storageLogger = new NetworkLogger({
+      const storageLogger = new NetworkDashboard({
         enabled: false,
         persistToStorage: true,
         maxLogs: 10,
@@ -134,7 +134,7 @@ describe('NetworkLogger', () => {
       storageLogger['saveToStorage']()
       
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'vue-network-logger',
+        'vue-network-dashboard',
         expect.any(String)
       )
       
@@ -162,7 +162,7 @@ describe('NetworkLogger', () => {
       
       localStorageMock.getItem.mockReturnValue(savedLogs)
       
-      const storageLogger = new NetworkLogger({
+      const storageLogger = new NetworkDashboard({
         enabled: false,
         persistToStorage: true,
         interceptors: { fetch: false, xhr: false, websocket: false }
@@ -177,7 +177,7 @@ describe('NetworkLogger', () => {
   describe('callbacks', () => {
     it('should call onLog callback', () => {
       const onLog = vi.fn()
-      const callbackLogger = new NetworkLogger({
+      const callbackLogger = new NetworkDashboard({
         enabled: false,
         callbacks: { onLog },
         interceptors: { fetch: false, xhr: false, websocket: false }
@@ -212,7 +212,7 @@ describe('NetworkLogger', () => {
       const onLog = vi.fn(() => { throw new Error('Callback error') })
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       
-      const callbackLogger = new NetworkLogger({
+      const callbackLogger = new NetworkDashboard({
         enabled: false,
         callbacks: { onLog },
         interceptors: { fetch: false, xhr: false, websocket: false }
@@ -250,7 +250,7 @@ describe('NetworkLogger', () => {
       const originalEnv = process.env.NODE_ENV
       process.env.NODE_ENV = 'production'
       
-      const devLogger = new NetworkLogger({
+      const devLogger = new NetworkDashboard({
         enabled: true,
         devOnly: true,
         interceptors: { fetch: false, xhr: false, websocket: false }
@@ -266,7 +266,7 @@ describe('NetworkLogger', () => {
       const originalEnv = process.env.NODE_ENV
       process.env.NODE_ENV = 'development'
       
-      const devLogger = new NetworkLogger({
+      const devLogger = new NetworkDashboard({
         enabled: true,
         devOnly: true,
         interceptors: { fetch: false, xhr: false, websocket: false }

@@ -1,12 +1,12 @@
 import type { App, Ref, Plugin } from 'vue'
 import { computed } from 'vue'
-import { NetworkLogger } from '../core/NetworkLogger'
-import type { NetworkLoggerOptions, UnifiedLogEntry, NetworkStats } from '../core/types'
+import { NetworkDashboard } from '../core/NetworkDashboard'
+import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats } from '../core/types'
 
 /**
  * Vue plugin instance with reactive state
  */
-export interface VueNetworkLoggerInstance {
+export interface VueNetworkDashboardInstance {
   // Reactive state
   logs: Ref<UnifiedLogEntry[]>
   
@@ -44,13 +44,13 @@ export interface VueNetworkLoggerInstance {
   subscribe: (callback: (entry: UnifiedLogEntry) => void) => () => void
   
   // Internal
-  _logger: NetworkLogger
+  _logger: NetworkDashboard
 }
 
 /**
- * Create reactive wrapper around NetworkLogger
+ * Create reactive wrapper around NetworkDashboard
  */
-const createReactiveLogger = (logger: NetworkLogger): VueNetworkLoggerInstance => {
+const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInstance => {
   const logs = logger.getLogsRef()
   
   // Computed reactive stats
@@ -98,17 +98,17 @@ const createReactiveLogger = (logger: NetworkLogger): VueNetworkLoggerInstance =
  * Vue plugin for Network Logger
  * Provides global network logging functionality to Vue app
  */
-export const NetworkLoggerPlugin: Plugin = {
-  install(app: App, options: NetworkLoggerOptions = {}) {
+export const NetworkDashboardPlugin: Plugin = {
+  install(app: App, options: NetworkDashboardOptions = {}) {
     // Create logger instance
-    const logger = new NetworkLogger(options)
+    const logger = new NetworkDashboard(options)
     const reactiveLogger = createReactiveLogger(logger)
     
     // Provide to entire app (Composition API)
-    app.provide('networkLogger', reactiveLogger)
+    app.provide('NetworkDashboard', reactiveLogger)
     
     // Add to global properties (Options API)
-    app.config.globalProperties.$networkLogger = reactiveLogger
+    app.config.globalProperties.$NetworkDashboard = reactiveLogger
     
     // Add devtools integration
     if (typeof window !== 'undefined' && (window as any).__VUE_DEVTOOLS_GLOBAL_HOOK__) {
@@ -117,7 +117,7 @@ export const NetworkLoggerPlugin: Plugin = {
       // Register custom inspector
       if (devtools.addInspector) {
         devtools.addInspector({
-          id: 'vue-network-logger',
+          id: 'vue-network-dashboard',
           label: 'Network Logger',
           icon: '🌐',
           treeFilterPlaceholder: 'Search requests...'
@@ -127,7 +127,7 @@ export const NetworkLoggerPlugin: Plugin = {
       // Send logs to devtools
       logger.subscribe(() => {
         if (devtools.sendInspectorTree) {
-          devtools.sendInspectorTree('vue-network-logger', {
+          devtools.sendInspectorTree('vue-network-dashboard', {
             rootNodes: []
           })
         }
@@ -145,14 +145,14 @@ export const NetworkLoggerPlugin: Plugin = {
 
 /**
  * Composition API hook for using network logger
- * @returns VueNetworkLoggerInstance
+ * @returns VueNetworkDashboardInstance
  */
-export const useNetworkLogger = (): VueNetworkLoggerInstance => {
+export const useNetworkDashboard = (): VueNetworkDashboardInstance => {
   // This will be replaced by the injected value when used in Vue component
   // The actual implementation is provided by the plugin
   throw new Error(
-    'useNetworkLogger must be used within a Vue component that has the NetworkLoggerPlugin installed.\n' +
-    'Make sure to install the plugin: app.use(NetworkLoggerPlugin)'
+    'useNetworkDashboard must be used within a Vue component that has the NetworkDashboardPlugin installed.\n' +
+    'Make sure to install the plugin: app.use(NetworkDashboardPlugin)'
   )
 }
 
@@ -160,9 +160,9 @@ export const useNetworkLogger = (): VueNetworkLoggerInstance => {
  * Create a standalone network logger instance (without Vue)
  * Useful for non-Vue environments or testing
  */
-export const createNetworkLogger = (options?: NetworkLoggerOptions): VueNetworkLoggerInstance => {
-  const logger = new NetworkLogger(options)
+export const createNetworkDashboard = (options?: NetworkDashboardOptions): VueNetworkDashboardInstance => {
+  const logger = new NetworkDashboard(options)
   return createReactiveLogger(logger)
 }
 
-export default NetworkLoggerPlugin
+export default NetworkDashboardPlugin
