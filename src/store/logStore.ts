@@ -68,9 +68,9 @@ export class LogStore implements ILogStore {
   }
 
   /**
-   * Get logs by type (http or websocket)
+   * Get logs by type (http, websocket, or sse)
    */
-  public getLogsByType = (type: 'http' | 'websocket'): UnifiedLogEntry[] => {
+  public getLogsByType = (type: 'http' | 'websocket' | 'sse'): UnifiedLogEntry[] => {
     return this.logsRef.value.filter(log => log.type === type)
   }
 
@@ -126,7 +126,7 @@ export class LogStore implements ILogStore {
    * Query logs with multiple filters
    */
   public queryLogs = (filters: {
-    type?: 'http' | 'websocket'
+    type?: 'http' | 'websocket' | 'sse'
     url?: string | RegExp
     method?: string
     minDuration?: number
@@ -207,6 +207,7 @@ export class LogStore implements ILogStore {
     let totalDataReceived = 0
     let totalDuration = 0
     let totalErrors = 0
+    let sseEventCount = 0
     
     const requestsByMethod: Record<string, number> = {}
     const requestsByStatus: Record<string, number> = {}
@@ -221,6 +222,9 @@ export class LogStore implements ILogStore {
       
       // Errors
       if (log.error.occurred) totalErrors++
+      
+      // SSE events
+      if (log.type === 'sse') sseEventCount++
       
       // Method stats
       const method = log.method
@@ -258,7 +262,8 @@ export class LogStore implements ILogStore {
       requestsByMethod,
       requestsByStatus,
       slowestRequests,
-      largestRequests
+      largestRequests,
+      sseEventCount
     }
   }
 
@@ -283,7 +288,7 @@ export class LogStore implements ILogStore {
           log.type,
           log.method,
           log.url,
-          log.http?.status?.toString() || '',
+          log.http?.status?.toString() || log.sse?.eventType || '',
           log.duration?.toString() || '',
           log.request.bodySize?.toString() || '',
           log.response.bodySize?.toString() || '',
@@ -318,6 +323,7 @@ export class LogStore implements ILogStore {
       `Average Duration: ${stats.averageDuration.toFixed(2)}ms`,
       `Total Data Sent: ${formatBytes(stats.totalDataSent)}`,
       `Total Data Received: ${formatBytes(stats.totalDataReceived)}`,
+      `SSE Events: ${stats.sseEventCount}`,
       '',
       'Requests by Method:',
       ...Object.entries(stats.requestsByMethod).map(([method, count]) => 

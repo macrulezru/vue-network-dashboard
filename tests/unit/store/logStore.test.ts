@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { LogStore } from '../../../src/store/logStore'
 import type { UnifiedLogEntry } from '../../../src/core/types'
 
@@ -23,6 +23,7 @@ describe('LogStore', () => {
       protocol: null
     },
     websocket: null,
+    sse: null,
     requestHeaders: {},
     responseHeaders: {},
     request: {
@@ -52,7 +53,132 @@ describe('LogStore', () => {
     ...overrides
   })
   
-  // ... existing tests ...
+  describe('addLog', () => {
+    it('should add log to store', () => {
+      const log = createMockLog()
+      store.addLog(log)
+      
+      expect(store.getSize()).toBe(1)
+      expect(store.getLogs()[0]).toEqual(log)
+    })
+    
+    it('should add new logs to the beginning', () => {
+      const log1 = createMockLog({ id: '1' })
+      const log2 = createMockLog({ id: '2' })
+      
+      store.addLog(log1)
+      store.addLog(log2)
+      
+      expect(store.getLogs()[0].id).toBe('2')
+      expect(store.getLogs()[1].id).toBe('1')
+    })
+    
+    it('should respect maxLogs limit', () => {
+      const smallStore = new LogStore(2)
+      
+      smallStore.addLog(createMockLog({ id: '1' }))
+      smallStore.addLog(createMockLog({ id: '2' }))
+      smallStore.addLog(createMockLog({ id: '3' }))
+      
+      expect(smallStore.getSize()).toBe(2)
+      expect(smallStore.getLogs()[0].id).toBe('3')
+      expect(smallStore.getLogs()[1].id).toBe('2')
+    })
+    
+    it('should notify subscribers', () => {
+      const callback = vi.fn()
+      store.subscribe(callback)
+      
+      const log = createMockLog()
+      store.addLog(log)
+      
+      expect(callback).toHaveBeenCalledWith(log)
+    })
+  })
+  
+  describe('clear', () => {
+    it('should clear all logs', () => {
+      store.addLog(createMockLog())
+      store.addLog(createMockLog())
+      
+      expect(store.getSize()).toBe(2)
+      
+      store.clear()
+      expect(store.getSize()).toBe(0)
+      expect(store.getLogs()).toEqual([])
+    })
+  })
+  
+  describe('getLogsByType', () => {
+    it('should filter logs by type', () => {
+      const httpLog = createMockLog({ type: 'http' })
+      const wsLog = createMockLog({ type: 'websocket', url: 'ws://example.com' })
+      const sseLog = createMockLog({ type: 'sse', url: 'https://example.com/sse' })
+      
+      store.addLog(httpLog)
+      store.addLog(wsLog)
+      store.addLog(sseLog)
+      
+      const httpLogs = store.getLogsByType('http')
+      const wsLogs = store.getLogsByType('websocket')
+      const sseLogs = store.getLogsByType('sse')
+      
+      expect(httpLogs).toHaveLength(1)
+      expect(httpLogs[0].type).toBe('http')
+      expect(wsLogs).toHaveLength(1)
+      expect(wsLogs[0].type).toBe('websocket')
+      expect(sseLogs).toHaveLength(1)
+      expect(sseLogs[0].type).toBe('sse')
+    })
+  })
+  
+  describe('getLogsByUrl', () => {
+    it('should filter logs by URL pattern (string)', () => {
+      store.addLog(createMockLog({ url: 'https://api.example.com/users' }))
+      store.addLog(createMockLog({ url: 'https://api.example.com/posts' }))
+      store.addLog(createMockLog({ url: 'https://other.com/data' }))
+      
+      const results = store.getLogsByUrl('/api')
+      
+      expect(results).toHaveLength(2)
+      expect(results[0].url).toContain('api.example.com')
+    })
+    
+    it('should filter logs by URL pattern (RegExp)', () => {
+      store.addLog(createMockLog({ url: 'https://api.example.com/users' }))
+      store.addLog(createMockLog({ url: 'https://api.example.com/posts' }))
+      
+      const results = store.getLogsByUrl(/users$/)
+      
+      expect(results).toHaveLength(1)
+      expect(results[0].url).toContain('users')
+    })
+  })
+  
+  describe('getLogsByStatus', () => {
+    it('should filter logs by status code range', () => {
+      store.addLog(createMockLog({ 
+        type: 'http', 
+        http: { status: 200, statusText: 'OK', protocol: null }
+      }))
+      store.addLog(createMockLog({ 
+        type: 'http', 
+        http: { status: 404, statusText: 'Not Found', protocol: null }
+      }))
+      store.addLog(createMockLog({ 
+        type: 'http', 
+        http: { status: 500, statusText: 'Error', protocol: null }
+      }))
+      
+      const successLogs = store.getLogsByStatus([200, 299])
+      const clientErrors = store.getLogsByStatus([400, 499])
+      const serverErrors = store.getLogsByStatus([500, 599])
+      
+      expect(successLogs).toHaveLength(1)
+      expect(clientErrors).toHaveLength(1)
+      expect(serverErrors).toHaveLength(1)
+    })
+  })
   
   describe('getLogsByTimeRange', () => {
     it('should filter logs by time range', () => {
@@ -110,9 +236,10 @@ describe('LogStore', () => {
         id: '4',
         type: 'websocket',
         url: 'ws://example.com/socket',
-        method: 'WS →',
+        method: 'WS → message',
         startTime: now - 3000,
-        duration: 5000
+        duration: 5000,
+        websocket: { readyState: 1, eventType: 'message', direction: 'outgoing', code: null, reason: null, wasClean: null }
       }))
     })
     
@@ -279,7 +406,6 @@ describe('LogStore', () => {
   
   describe('getStats with real data', () => {
     it('should calculate correct statistics from logs', () => {
-      
       store.addLog(createMockLog({
         method: 'GET',
         duration: 100,
@@ -316,6 +442,7 @@ describe('LogStore', () => {
       expect(stats.requestsByStatus).toEqual({ '2xx': 2, '4xx': 1 })
       expect(stats.slowestRequests).toHaveLength(3)
       expect(stats.largestRequests).toHaveLength(3)
+      expect(stats.sseEventCount).toBe(0)
     })
   })
 })

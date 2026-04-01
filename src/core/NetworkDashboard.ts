@@ -10,9 +10,11 @@ import {
   FetchInterceptor,
   XHRInterceptor,
   WebSocketInterceptor,
+  SSEInterceptor,
   type FetchInterceptorOptions,
   type XHRInterceptorOptions,
-  type WebSocketInterceptorOptions
+  type WebSocketInterceptorOptions,
+  type SSEInterceptorOptions
 } from '../interceptors'
 import {
   sanitizeHeaders,
@@ -31,6 +33,7 @@ export class NetworkDashboard {
   private fetchInterceptor: FetchInterceptor | null = null
   private xhrInterceptor: XHRInterceptor | null = null
   private websocketInterceptor: WebSocketInterceptor | null = null
+  private sseInterceptor: SSEInterceptor | null = null
   private isEnabled: boolean = false
   private isDev: boolean = false
 
@@ -45,7 +48,8 @@ export class NetworkDashboard {
       interceptors: {
         fetch: true,
         xhr: true,
-        websocket: true
+        websocket: true,
+        sse: true
       },
       devOnly: false,
       persistToStorage: false,
@@ -129,6 +133,16 @@ export class NetworkDashboard {
       this.websocketInterceptor.intercept()
     }
 
+    if (this.options.interceptors?.sse) {
+      const sseOptions: SSEInterceptorOptions = {
+        onLog,
+        formatter: this.formatter,
+        shouldLog: (url: string) => shouldLog(url, 'EVENTSOURCE')
+      }
+      this.sseInterceptor = new SSEInterceptor(sseOptions)
+      this.sseInterceptor.intercept()
+    }
+
     this.isEnabled = true
   }
 
@@ -141,10 +155,12 @@ export class NetworkDashboard {
     this.fetchInterceptor?.restore()
     this.xhrInterceptor?.restore()
     this.websocketInterceptor?.restore()
+    this.sseInterceptor?.restore()
 
     this.fetchInterceptor = null
     this.xhrInterceptor = null
     this.websocketInterceptor = null
+    this.sseInterceptor = null
 
     this.isEnabled = false
   }
@@ -277,7 +293,7 @@ export class NetworkDashboard {
   /**
    * Get logs by type
    */
-  public getLogsByType = (type: 'http' | 'websocket'): UnifiedLogEntry[] => {
+  public getLogsByType = (type: 'http' | 'websocket' | 'sse'): UnifiedLogEntry[] => {
     return this.store.getLogsByType(type)
   }
 
@@ -313,7 +329,7 @@ export class NetworkDashboard {
    * Query logs with filters
    */
   public queryLogs = (filters: {
-    type?: 'http' | 'websocket'
+    type?: 'http' | 'websocket' | 'sse'
     url?: string | RegExp
     method?: string
     minDuration?: number
@@ -360,6 +376,7 @@ export class NetworkDashboard {
       `Average Duration: ${stats.averageDuration.toFixed(2)}ms`,
       `Total Data Sent: ${this.formatBytes(stats.totalDataSent)}`,
       `Total Data Received: ${this.formatBytes(stats.totalDataReceived)}`,
+      `SSE Events: ${stats.sseEventCount}`,
       '',
       'Requests by Method:',
       ...Object.entries(stats.requestsByMethod).map(([method, count]) => 

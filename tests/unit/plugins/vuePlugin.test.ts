@@ -10,7 +10,7 @@ describe('Vue Plugin', () => {
       
       app.use(NetworkDashboardPlugin, { enabled: false })
       
-      expect(app.config.globalProperties.$NetworkDashboard).toBeDefined()
+      expect(app.config.globalProperties.$networkDashboard).toBeDefined()
     })
     
     it('should provide logger to components', () => {
@@ -18,14 +18,14 @@ describe('Vue Plugin', () => {
       
       app.use(NetworkDashboardPlugin, { enabled: false })
       
-      expect(app._context.provides).toHaveProperty('NetworkDashboard')
+      expect(app._context.provides).toHaveProperty('networkDashboard')
     })
     
     it('should cleanup on app unmount', () => {
       const app = createApp({})
       app.use(NetworkDashboardPlugin, { enabled: false })
       
-      const destroySpy = vi.spyOn(app.config.globalProperties.$NetworkDashboard._logger, 'destroy')
+      const destroySpy = vi.spyOn(app.config.globalProperties.$networkDashboard._logger, 'destroy')
       
       app.unmount()
       
@@ -47,7 +47,7 @@ describe('Vue Plugin', () => {
     it('should create standalone logger', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(logger).toBeDefined()
@@ -60,7 +60,7 @@ describe('Vue Plugin', () => {
     it('should have reactive logs', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(logger.logs.value).toEqual([])
@@ -69,7 +69,7 @@ describe('Vue Plugin', () => {
     it('should provide computed stats', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(logger.totalRequests.value).toBe(0)
@@ -82,7 +82,7 @@ describe('Vue Plugin', () => {
     it('should provide all methods', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(typeof logger.getStats).toBe('function')
@@ -104,13 +104,11 @@ describe('Vue Plugin', () => {
     it('should update stats when logs are added', async () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
-      // Manually add a log through the internal logger
       const internalLogger = logger._logger
       
-      // Create a mock log with correct types
       const log: UnifiedLogEntry = {
         id: 'test',
         type: 'http',
@@ -125,6 +123,7 @@ describe('Vue Plugin', () => {
           protocol: 'HTTP/1.1'
         },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: {
@@ -155,7 +154,6 @@ describe('Vue Plugin', () => {
       
       internalLogger['store'].addLog(log)
       
-      // Wait for reactivity
       await new Promise(resolve => setTimeout(resolve, 10))
       
       expect(logger.totalRequests.value).toBe(1)
@@ -166,7 +164,7 @@ describe('Vue Plugin', () => {
     it('should clear logs', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const internalLogger = logger._logger
@@ -181,6 +179,7 @@ describe('Vue Plugin', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -199,7 +198,7 @@ describe('Vue Plugin', () => {
     it('should enable and disable logging', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       expect(logger.isEnabled()).toBe(false)
@@ -214,7 +213,7 @@ describe('Vue Plugin', () => {
     it('should export logs', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const json = logger.export('json')
@@ -227,7 +226,7 @@ describe('Vue Plugin', () => {
     it('should get logs by type', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const internalLogger = logger._logger
@@ -242,6 +241,7 @@ describe('Vue Plugin', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -260,6 +260,7 @@ describe('Vue Plugin', () => {
         method: 'WEBSOCKET',
         http: null,
         websocket: { readyState: 1, eventType: 'connection', direction: null, code: null, reason: null, wasClean: null },
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
@@ -283,7 +284,7 @@ describe('Vue Plugin', () => {
     it('should subscribe to new logs', () => {
       const logger = createNetworkDashboard({ 
         enabled: false,
-        interceptors: { fetch: false, xhr: false, websocket: false }
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
       
       const callback = vi.fn()
@@ -301,6 +302,7 @@ describe('Vue Plugin', () => {
         method: 'GET',
         http: { status: null, statusText: null, protocol: null },
         websocket: null,
+        sse: null,
         requestHeaders: {},
         responseHeaders: {},
         request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },

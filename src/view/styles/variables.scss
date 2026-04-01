@@ -1,0 +1,96 @@
+// Colors - Dark Theme
+$bg-primary: #1a1a1e;
+$bg-secondary: #252529;
+$bg-tertiary: #2a2a2e;
+$bg-hover: #2a2a2e;
+$bg-active: #3a3a3e;
+
+// Text colors
+$text-primary: #e4e4e7;
+$text-secondary: #9ca3af;
+$text-muted: #71717a;
+$text-white: #ffffff;
+
+// Accent colors
+$accent-blue: #3b82f6;
+$accent-blue-dark: #2563eb;
+$accent-purple: #8b5cf6;
+
+// Status colors - Success
+$success-bg: #065f46;
+$success-text: #6ee7b7;
+
+// Status colors - Error
+$error-bg: #991b1b;
+$error-text: #fecaca;
+
+// Status colors - Warning
+$warning-bg: #854d0e;
+$warning-text: #fde047;
+
+// Status colors - Info
+$info-bg: #2a2a2e;
+$info-text: #9ca3af;
+
+// Method colors
+$method-get-bg: #065f46;
+$method-get-text: #6ee7b7;
+$method-post-bg: #1e3a8a;
+$method-post-text: #93c5fd;
+$method-put-bg: #92400e;
+$method-put-text: #fcd34d;
+$method-delete-bg: #991b1b;
+$method-delete-text: #fecaca;
+$method-ws-bg: #5b21b6;
+$method-ws-text: #c4b5fd;
+$method-default-bg: #2a2a2e;
+$method-default-text: #a1a1aa;
+
+// Status groups
+$status-success: #10b981;
+$status-client-error: #f59e0b;
+$status-server-error: #ef4444;
+
+// Borders
+$border-color: #2a2a2e;
+$border-radius-sm: 4px;
+$border-radius-md: 6px;
+$border-radius-lg: 8px;
+$border-radius-xl: 12px;
+
+// Shadows
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+$shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+
+// Typography
+$font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+$font-family-mono: 'Fira Code', 'Courier New', monospace;
+$font-size-xs: 10px;
+$font-size-sm: 11px;
+$font-size-md: 12px;
+$font-size-lg: 13px;
+$font-size-xl: 14px;
+$font-size-2xl: 24px;
+
+// Transitions
+$transition-fast: 0.15s ease;
+$transition-base: 0.2s ease;
+$transition-slow: 0.3s ease;
+
+// Breakpoints
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+
+// Z-index layers
+$z-toggle: 9999;
+$z-debugger: 10000;

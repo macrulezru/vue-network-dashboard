@@ -1,6 +1,6 @@
 # Vue Network Dashboard
 
-Universal network dashboard for Vue 3 applications. Intercepts all HTTP and WebSocket traffic with unified logging format, automatic sanitization, and reactive storage.
+Universal network dashboard for Vue 3 applications. Intercepts all HTTP, WebSocket and SSE traffic with unified logging format, automatic sanitization, and reactive storage.
 
 ## Features
 
@@ -98,6 +98,7 @@ export default {
 | `interceptors.fetch` | `boolean` | `true` | Intercept Fetch API requests |
 | `interceptors.xhr` | `boolean` | `true` | Intercept XMLHttpRequest |
 | `interceptors.websocket` | `boolean` | `true` | Intercept WebSocket connections |
+| `interceptors.sse` | `boolean` | `true` | Intercept SSE connections |
 | `filters.urlPattern` | `RegExp` | - | Only log URLs matching pattern |
 | `filters.excludeUrlPattern` | `RegExp` | - | Exclude URLs matching pattern |
 | `filters.methods` | `string[]` | - | Only log specific HTTP methods |
@@ -120,7 +121,7 @@ interface UnifiedLogEntry {
   
   // Request info
   url: string                   // Full URL
-  method: string                // HTTP method or WebSocket event
+  method: string                // HTTP method, WebSocket or SSE event
   
   // Headers
   requestHeaders: Record<string, string>
@@ -148,7 +149,7 @@ interface UnifiedLogEntry {
   
   // Metadata
   metadata: {
-    clientType: 'fetch' | 'xhr' | 'websocket'
+    clientType: 'fetch' | 'xhr' | 'websocket' | 'sse'
     redirected: boolean
     timestamp: string
   }

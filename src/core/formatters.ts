@@ -49,6 +49,24 @@ export interface FormatWebSocketParams {
   }
 }
 
+export interface FormatSSEParams {
+  id?: string
+  url: string
+  startTime: number
+  endTime?: number | null
+  duration?: number | null
+  eventType: string | null
+  eventData: any
+  lastEventId: string | null
+  readyState: number
+  error?: {
+    occurred: boolean
+    message: string | null
+    name: string | null
+    stack: string | null
+  }
+}
+
 export interface FormatOptions {
   sanitizeHeaders?: (headers: Record<string, string>) => Record<string, string>
   sanitizeBody?: (body: any) => any
@@ -91,6 +109,7 @@ export class HTTPFormatter {
         protocol: params.protocol ?? null
       },
       websocket: null,
+      sse: null,
       requestHeaders,
       responseHeaders: {},
       request: {
@@ -234,13 +253,14 @@ export class WebSocketFormatter {
     const endTime = params.endTime || null
     const duration = params.duration || null
     
-    // Determine method string for display
+    // Determine method string for display - расширенный вывод
     let method = 'WEBSOCKET'
-    if (params.eventType === 'message' && params.direction === 'incoming') method = 'WS ←'
-    if (params.eventType === 'message' && params.direction === 'outgoing') method = 'WS →'
     if (params.eventType === 'open') method = 'WS OPEN'
     if (params.eventType === 'close') method = 'WS CLOSE'
     if (params.eventType === 'error') method = 'WS ERROR'
+    if (params.eventType === 'message' && params.direction === 'incoming') method = 'WS ← message'
+    if (params.eventType === 'message' && params.direction === 'outgoing') method = 'WS → message'
+    if (params.eventType === 'connection') method = 'WS CONNECTING'
     
     // Process message data
     let data = params.data
@@ -293,6 +313,7 @@ export class WebSocketFormatter {
         reason: params.closeInfo?.reason ?? null,
         wasClean: params.closeInfo?.wasClean ?? null
       },
+      sse: null,
       requestHeaders: {},
       responseHeaders: {},
       request: {
@@ -324,15 +345,105 @@ export class WebSocketFormatter {
 }
 
 /**
- * Main formatter that combines HTTP and WebSocket formatters
+ * Formatter for Server-Sent Events (SSE)
+ * Creates unified log entries from SSE data
+ */
+export class SSEFormatter {
+  private options: FormatOptions
+
+  constructor(options: FormatOptions = {}) {
+    this.options = options
+  }
+
+  /**
+   * Format SSE event into unified log entry
+   */
+  public format = (params: FormatSSEParams): UnifiedLogEntry => {
+    const id = params.id || generateId()
+    const startTime = params.startTime
+    const endTime = params.endTime || null
+    const duration = params.duration || null
+
+    // Determine method string for display
+    let method = 'EVENTSOURCE'
+    if (params.eventType === 'open') method = 'SSE OPEN'
+    if (params.eventType === 'message') method = `SSE ← ${params.eventType}`
+    if (params.eventType === 'error') method = 'SSE ERROR'
+    if (params.eventType && params.eventType !== 'message' && params.eventType !== 'open' && params.eventType !== 'error') {
+      method = `SSE ← ${params.eventType}`
+    }
+
+    // Sanitize event data if needed
+    let eventData = params.eventData
+    if (this.options.sanitizeBody && eventData) {
+      eventData = this.options.sanitizeBody(eventData)
+    }
+
+    const eventDataRaw = typeof eventData === 'string' ? eventData : safeStringify(eventData)
+    const eventDataSize = calculateSize(eventData)
+
+    return {
+      id,
+      type: 'sse',
+      startTime,
+      endTime,
+      duration,
+      url: params.url,
+      method,
+      http: null,
+      websocket: null,
+      sse: {
+        readyState: params.readyState,
+        eventType: params.eventType,
+        lastEventId: params.lastEventId
+      },
+      requestHeaders: {},
+      responseHeaders: {},
+      request: {
+        body: null,
+        bodyRaw: null,
+        bodySize: null,
+        bodyType: null
+      },
+      response: {
+        body: {
+          eventType: params.eventType,
+          data: eventData,
+          lastEventId: params.lastEventId,
+          readyState: params.readyState
+        },
+        bodyRaw: eventDataRaw,
+        bodySize: eventDataSize,
+        bodyType: 'text/event-stream'
+      },
+      error: params.error || {
+        occurred: false,
+        message: null,
+        name: null,
+        stack: null
+      },
+      metadata: {
+        clientType: 'eventsource',
+        redirected: false,
+        retryCount: 0,
+        timestamp: new Date().toISOString()
+      }
+    }
+  }
+}
+
+/**
+ * Main formatter that combines HTTP, WebSocket and SSE formatters
  */
 export class LogFormatter {
   public http: HTTPFormatter
   public websocket: WebSocketFormatter
+  public sse: SSEFormatter
 
   constructor(options: FormatOptions = {}) {
     this.http = new HTTPFormatter(options)
     this.websocket = new WebSocketFormatter(options)
+    this.sse = new SSEFormatter(options)
   }
 
   /**
@@ -341,5 +452,6 @@ export class LogFormatter {
   public updateOptions = (options: FormatOptions): void => {
     this.http = new HTTPFormatter(options)
     this.websocket = new WebSocketFormatter(options)
+    this.sse = new SSEFormatter(options)
   }
 }

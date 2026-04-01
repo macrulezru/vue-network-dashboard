@@ -1,6 +1,6 @@
 export interface UnifiedLogEntry {
   id: string
-  type: 'http' | 'websocket'
+  type: 'http' | 'websocket' | 'sse'
   
   startTime: number
   endTime: number | null
@@ -22,6 +22,12 @@ export interface UnifiedLogEntry {
     code: number | null
     reason: string | null
     wasClean: boolean | null
+  } | null
+  
+  sse: {
+    readyState: number
+    eventType: string | null
+    lastEventId: string | null
   } | null
   
   requestHeaders: Record<string, string>
@@ -49,7 +55,7 @@ export interface UnifiedLogEntry {
   }
   
   metadata: {
-    clientType: 'fetch' | 'xhr' | 'websocket'
+    clientType: 'fetch' | 'xhr' | 'websocket' | 'eventsource'
     redirected: boolean
     retryCount: number
     timestamp: string
@@ -63,6 +69,7 @@ export interface NetworkDashboardOptions {
     fetch?: boolean
     xhr?: boolean
     websocket?: boolean
+    sse?: boolean
   }
   filters?: {
     urlPattern?: RegExp
@@ -99,6 +106,7 @@ export interface NetworkStats {
   requestsByStatus: Record<string, number>
   slowestRequests: UnifiedLogEntry[]
   largestRequests: UnifiedLogEntry[]
+  sseEventCount: number
 }
 
 export interface LogStore {
@@ -106,13 +114,13 @@ export interface LogStore {
   addLog(entry: UnifiedLogEntry): void
   clear(): void
   getLogs(): UnifiedLogEntry[]
-  getLogsByType(type: 'http' | 'websocket'): UnifiedLogEntry[]
+  getLogsByType(type: 'http' | 'websocket' | 'sse'): UnifiedLogEntry[]
   getLogsByUrl(urlPattern: string | RegExp): UnifiedLogEntry[]
   getLogsByStatus(statusRange: [number, number]): UnifiedLogEntry[]
   getLogsByMethod(method: string): UnifiedLogEntry[]
   getErrorLogs(): UnifiedLogEntry[]
   queryLogs(filters: {
-    type?: 'http' | 'websocket'
+    type?: 'http' | 'websocket' | 'sse'
     url?: string | RegExp
     method?: string
     minDuration?: number
