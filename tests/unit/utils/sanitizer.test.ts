@@ -198,12 +198,13 @@ describe('sanitizer', () => {
       expect(rules.maskFields).toContain('email')
     })
     
-    it('should override defaults with custom rules', () => {
+    it('should merge custom maskFields with defaults', () => {
       const rules = getSanitizationRules({
         maskFields: ['custom-field']
       })
-      
-      expect(rules.maskFields).toEqual(['custom-field'])
+
+      expect(rules.maskFields).toContain('custom-field')
+      expect(rules.maskFields).toContain('email')
     })
   })
 })

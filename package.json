@@ -1,6 +1,6 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Universal network logger for Vue 3 applications - intercepts HTTP and WebSocket traffic",
   "type": "module",
   "main": "./dist/vue-network-dashboard.umd.js",
@@ -14,7 +14,8 @@
     },
     "./nuxt": {
       "import": "./dist/nuxt.mjs"
-    }
+    },
+    "./dist/vue-network-dashboard.css": "./dist/vue-network-dashboard.css"
   },
   "files": [
     "dist",

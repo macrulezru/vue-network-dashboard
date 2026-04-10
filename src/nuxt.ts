@@ -42,11 +42,17 @@ export default defineNuxtModule<ModuleOptions>({
     maxLogs: 500
   },
 
-  setup(options, nuxt: any) {
+  setup(options: ModuleOptions, nuxt: any) {
     if (options.devOnly && !nuxt.options.dev) return
 
-    // Expose plugin options through runtimeConfig so the client plugin can read them
-    nuxt.options.runtimeConfig.public.networkDashboard = options as any
+    // Expose plugin options through runtimeConfig so the client plugin can read them.
+    // Override devOnly: false — the module already handled the dev/prod check above,
+    // so NetworkDashboard should not apply the check a second time against its own
+    // import.meta.env.DEV (which is always false in a pre-built library).
+    nuxt.options.runtimeConfig.public.networkDashboard = { ...options, devOnly: false } as any
+
+    // Add stylesheet
+    nuxt.options.css.push('vue-network-dashboard/dist/vue-network-dashboard.css')
 
     // Register the plugin client-side only — network interception only makes sense in a browser
     addPluginTemplate({
@@ -71,11 +77,12 @@ export default defineNuxtPlugin((nuxtApp) => {
       from: 'vue-network-dashboard'
     })
 
-    // Auto-import component
+    // Auto-import component (client-only — uses browser APIs and requires the plugin)
     addComponent({
       name: 'NetworkDebugger',
       export: 'NetworkDebugger',
-      filePath: 'vue-network-dashboard'
+      filePath: 'vue-network-dashboard',
+      mode: 'client'
     })
   }
 })
