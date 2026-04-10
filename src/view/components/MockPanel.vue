@@ -6,7 +6,8 @@ import type { MockRule } from '../../core/types'
 import { useNetworkDashboard } from '../../plugins/vuePlugin'
 
 const dashboard = useNetworkDashboard()
-const mocks = computed(() => dashboard.getMocks())
+
+const mocks = computed(() => dashboard.mocks.value)
 
 // ── Form state ────────────────────────────────────────────────────────────────
 const showForm = ref(false)

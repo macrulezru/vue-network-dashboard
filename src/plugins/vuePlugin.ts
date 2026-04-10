@@ -1,5 +1,5 @@
 import type { App, Ref, Plugin } from 'vue'
-import { computed, inject } from 'vue'
+import { computed, inject, ref, readonly } from 'vue'
 import { NetworkDashboard } from '../core/NetworkDashboard'
 import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats, MockRule } from '../core/types'
 
@@ -25,17 +25,30 @@ export interface VueNetworkDashboardInstance {
   queryLogs: (filters: any) => UnifiedLogEntry[]
   subscribe: (callback: (entry: UnifiedLogEntry) => void) => () => void
   // Mock API
+  mocks: Ref<readonly MockRule[]>
   addMock: (rule: Omit<MockRule, 'id'>) => MockRule
   updateMock: (id: string, updates: Partial<Omit<MockRule, 'id'>>) => void
   removeMock: (id: string) => void
   clearMocks: () => void
-  getMocks: () => MockRule[]
+  getMocks: () => MockRule[] // для обратной совместимости
   _logger: NetworkDashboard
 }
 
 const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInstance => {
   const logs = logger.getLogsRef()
   const stats = computed(() => logger.getStats())
+  
+  const mocksRef = ref<MockRule[]>(logger.getMocks())
+  
+  const unsubscribe = logger.onMocksChange(() => {
+    mocksRef.value = logger.getMocks()
+  })
+  
+  const originalDestroy = logger.destroy.bind(logger)
+  logger.destroy = () => {
+    unsubscribe()
+    originalDestroy()
+  }
   
   return {
     logs,
@@ -58,6 +71,7 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
     getErrorLogs: () => logger.getErrorLogs(),
     queryLogs: (filters) => logger.queryLogs(filters),
     subscribe: (callback) => logger.subscribe(callback),
+    mocks: readonly(mocksRef) as Ref<readonly MockRule[]>,
     addMock: (rule) => logger.addMock(rule),
     updateMock: (id, updates) => logger.updateMock(id, updates),
     removeMock: (id) => logger.removeMock(id),

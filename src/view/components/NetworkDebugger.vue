@@ -44,6 +44,12 @@ const resolvedModifiers = computed(() => ({
 const dashboard = useNetworkDashboard()
 const logs = dashboard.logs
 
+const mocks = dashboard.mocks
+
+const activeMocksCount = computed(() => 
+  mocks.value.filter(m => m.enabled).length
+)
+
 // ── Filters ────────────────────────────────────────────────────────────────────
 const filters = ref({
   type: 'all' as 'all' | 'http' | 'websocket' | 'sse',
@@ -439,8 +445,8 @@ defineExpose({
           </button>
           <button :class="{ active: activeTab === 'mocks' }" @click="activeTab = 'mocks'">
             Mocks
-            <span v-if="dashboard.getMocks().filter(m => m.enabled).length > 0" class="tab-badge">
-              {{ dashboard.getMocks().filter(m => m.enabled).length }}
+            <span v-if="activeMocksCount > 0" class="tab-badge">
+              {{ activeMocksCount }}
             </span>
           </button>
         </div>
