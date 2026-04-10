@@ -24,7 +24,7 @@
  * ```
  */
 
-import { defineNuxtModule, addPlugin, addImports, addComponent, createResolver } from '@nuxt/kit'
+import { defineNuxtModule, addPluginTemplate, addImports, addComponent } from '@nuxt/kit'
 import type { NetworkDashboardOptions } from './core/types'
 
 export interface ModuleOptions extends NetworkDashboardOptions {}
@@ -43,28 +43,39 @@ export default defineNuxtModule<ModuleOptions>({
   },
 
   setup(options, nuxt: any) {
-    const resolver = createResolver(import.meta.url)
+    if (options.devOnly && !nuxt.options.dev) return
 
     // Expose plugin options through runtimeConfig so the client plugin can read them
     nuxt.options.runtimeConfig.public.networkDashboard = options as any
 
-    // Register the plugin — client-side only (network interception only makes sense in a browser)
-    addPlugin({
-      src: resolver.resolve('./runtime/nuxt-plugin'),
-      mode: 'client'
+    // Register the plugin client-side only — network interception only makes sense in a browser
+    addPluginTemplate({
+      filename: 'vue-network-dashboard.client.ts',
+      mode: 'client',
+      getContents: (): string => `
+import { defineNuxtPlugin, useRuntimeConfig } from '#app'
+import { NetworkDashboardPlugin } from 'vue-network-dashboard'
+
+export default defineNuxtPlugin((nuxtApp) => {
+  const config = useRuntimeConfig()
+  const options = (config.public.networkDashboard ?? {}) as Record<string, unknown>
+  nuxtApp.vueApp.use(NetworkDashboardPlugin, options)
+})
+`.trim()
     })
 
     // Auto-import composable
     addImports({
       name: 'useNetworkDashboard',
       as: 'useNetworkDashboard',
-      from: resolver.resolve('./plugins/vuePlugin')
+      from: 'vue-network-dashboard'
     })
 
     // Auto-import component
     addComponent({
       name: 'NetworkDebugger',
-      filePath: resolver.resolve('./view/index')
+      export: 'NetworkDebugger',
+      filePath: 'vue-network-dashboard'
     })
   }
 })

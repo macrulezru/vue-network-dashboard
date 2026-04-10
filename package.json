@@ -1,6 +1,6 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Universal network logger for Vue 3 applications - intercepts HTTP and WebSocket traffic",
   "type": "module",
   "main": "./dist/vue-network-dashboard.umd.js",
@@ -11,6 +11,9 @@
       "import": "./dist/vue-network-dashboard.esm.js",
       "require": "./dist/vue-network-dashboard.umd.js",
       "types": "./dist/types/index.d.ts"
+    },
+    "./nuxt": {
+      "import": "./dist/nuxt.mjs"
     }
   },
   "files": [
@@ -20,7 +23,8 @@
   ],
   "scripts": {
     "dev": "vite --open",
-    "build": "vite build",
+    "build": "vite build && npm run build:nuxt",
+    "build:nuxt": "esbuild src/nuxt.ts --bundle=false --platform=node --format=esm --outfile=dist/nuxt.mjs",
     "preview": "vite preview --open",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
@@ -62,6 +66,7 @@
     "vue": "^3.0.0"
   },
   "devDependencies": {
+    "@nuxt/kit": "^4.4.2",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
