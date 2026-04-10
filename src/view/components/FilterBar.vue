@@ -1,74 +1,130 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { FilterOptions } from '../composables/useLogFilter'
 
-const props = defineProps<{
-  filters: FilterOptions
-}>()
+const props = defineProps<{ filters: FilterOptions }>()
 
-const emit = defineEmits<{
-  'update:filters': [filters: FilterOptions]
-}>()
+const emit = defineEmits<{ 'update:filters': [filters: FilterOptions] }>()
 
-const localFilters = computed({
-  get: () => props.filters,
-  set: (value) => emit('update:filters', value)
-})
+const setType = (type: FilterOptions['type']) => {
+  emit('update:filters', { ...props.filters, type })
+}
+
+const setUrl = (e: Event) => {
+  emit('update:filters', { ...props.filters, url: (e.target as HTMLInputElement).value })
+}
+
+const setBody = (e: Event) => {
+  emit('update:filters', { ...props.filters, body: (e.target as HTMLInputElement).value })
+}
+
+const setMethod = (e: Event) => {
+  emit('update:filters', { ...props.filters, method: (e.target as HTMLInputElement).value })
+}
+
+const setStatus = (e: Event) => {
+  emit('update:filters', { ...props.filters, status: (e.target as HTMLInputElement).value })
+}
+
+const setMinDuration = (e: Event) => {
+  const val = (e.target as HTMLInputElement).value
+  emit('update:filters', { ...props.filters, minDuration: val ? Number(val) : null })
+}
+
+const toggleErrors = () => {
+  emit('update:filters', { ...props.filters, hasError: !props.filters.hasError })
+}
 
 const resetFilters = () => {
-  emit('update:filters', {
-    type: 'all',
-    method: '',
-    url: '',
-    status: '',
-    minDuration: null,
-    hasError: false
-  })
+  emit('update:filters', { type: 'all', method: '', url: '', body: '', status: '', minDuration: null, hasError: false })
 }
 </script>
 
 <template>
   <div class="filter-bar">
-    <select v-model="localFilters.type" class="filter-select">
-      <option value="all">All Types</option>
-      <option value="http">HTTP</option>
-      <option value="websocket">WebSocket</option>
-      <option value="sse">Server-Sent Events</option>
-    </select>
-    
+    <!-- Type tabs -->
+    <div class="filter-type-tabs">
+      <button
+        :class="['', filters.type === 'all' ? 'active' : '']"
+        @click="setType('all')"
+      >All</button>
+      <button
+        :class="[filters.type === 'http' ? 'active active-http' : '']"
+        @click="setType('http')"
+      >HTTP</button>
+      <button
+        :class="[filters.type === 'websocket' ? 'active active-ws' : '']"
+        @click="setType('websocket')"
+      >WS</button>
+      <button
+        :class="[filters.type === 'sse' ? 'active active-sse' : '']"
+        @click="setType('sse')"
+      >SSE</button>
+    </div>
+
+    <!-- URL search -->
+    <div class="filter-search-wrap">
+      <svg class="filter-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        :value="filters.url"
+        type="text"
+        placeholder="Filter by URL..."
+        class="filter-input"
+        @input="setUrl"
+      />
+    </div>
+
+    <!-- Body search -->
     <input
-      v-model="localFilters.method"
+      :value="filters.body"
       type="text"
-      placeholder="Method (GET, POST, WS, SSE...)"
-      class="filter-input"
+      placeholder="Body..."
+      class="filter-input-plain"
+      @input="setBody"
     />
-    
+
+    <!-- Method -->
     <input
-      v-model="localFilters.url"
+      :value="filters.method"
       type="text"
-      placeholder="URL filter..."
-      class="filter-input"
+      placeholder="Method"
+      class="filter-input-plain filter-input-sm"
+      @input="setMethod"
     />
-    
+
+    <!-- Status -->
     <input
-      v-model="localFilters.status"
+      :value="filters.status"
       type="text"
-      placeholder="Status code..."
-      class="filter-input small"
+      placeholder="Status"
+      class="filter-input-plain filter-input-sm"
+      @input="setStatus"
     />
-    
+
+    <!-- Min duration -->
     <input
-      v-model.number="localFilters.minDuration"
+      :value="filters.minDuration ?? ''"
       type="number"
-      placeholder="Min duration (ms)"
-      class="filter-input small"
+      placeholder="≥ ms"
+      class="filter-input-plain filter-input-sm"
+      @input="setMinDuration"
     />
-    
-    <label class="filter-checkbox">
-      <input v-model="localFilters.hasError" type="checkbox" />
-      <span>Only errors</span>
-    </label>
-    
-    <button class="filter-reset" @click="resetFilters">Reset</button>
+
+    <!-- Errors toggle -->
+    <button :class="['filter-toggle', { active: filters.hasError }]" @click="toggleErrors">
+      <span class="toggle-dot" />
+      Errors
+    </button>
+
+    <!-- Reset -->
+    <button class="filter-reset" @click="resetFilters">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+      Reset
+    </button>
   </div>
 </template>

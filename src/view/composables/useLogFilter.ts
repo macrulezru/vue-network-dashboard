@@ -5,6 +5,7 @@ export interface FilterOptions {
   type: 'all' | 'http' | 'websocket' | 'sse'
   method: string
   url: string
+  body: string
   status: string
   minDuration: number | null
   hasError: boolean
@@ -15,6 +16,7 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
     type: 'all',
     method: '',
     url: '',
+    body: '',
     status: '',
     minDuration: null,
     hasError: false
@@ -37,11 +39,25 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
     
     // Filter by URL
     if (filters.value.url) {
-      result = result.filter(log => 
+      result = result.filter(log =>
         log.url.toLowerCase().includes(filters.value.url.toLowerCase())
       )
     }
-    
+
+    // Filter by body (request or response)
+    if (filters.value.body) {
+      const term = filters.value.body.toLowerCase()
+      result = result.filter(log => {
+        const req = typeof log.request.body === 'string'
+          ? log.request.body
+          : JSON.stringify(log.request.body ?? '')
+        const res = typeof log.response.body === 'string'
+          ? log.response.body
+          : JSON.stringify(log.response.body ?? '')
+        return req.toLowerCase().includes(term) || res.toLowerCase().includes(term)
+      })
+    }
+
     // Filter by status
     if (filters.value.status) {
       result = result.filter(log => {
@@ -71,6 +87,7 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
       type: 'all',
       method: '',
       url: '',
+      body: '',
       status: '',
       minDuration: null,
       hasError: false

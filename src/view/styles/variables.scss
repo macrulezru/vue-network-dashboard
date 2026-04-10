@@ -1,96 +1,126 @@
-// Colors - Dark Theme
-$bg-primary: #1a1a1e;
-$bg-secondary: #252529;
-$bg-tertiary: #2a2a2e;
-$bg-hover: #2a2a2e;
-$bg-active: #3a3a3e;
+// ═══════════════════════════════════════════
+// Background layers (darkest → lightest)
+// ═══════════════════════════════════════════
+$bg-base:     #0d1117;
+$bg-surface:  #161b22;
+$bg-elevated: #21262d;
+$bg-overlay:  #2d333b;
+$bg-hover:    #2d333b;
+$bg-active:   #373e47;
+$bg-input:    #0d1117;
 
-// Text colors
-$text-primary: #e4e4e7;
-$text-secondary: #9ca3af;
-$text-muted: #71717a;
-$text-white: #ffffff;
+// Legacy aliases (used by mixins)
+$bg-primary:   $bg-surface;
+$bg-secondary: $bg-elevated;
+$bg-tertiary:  $bg-overlay;
 
-// Accent colors
-$accent-blue: #3b82f6;
-$accent-blue-dark: #2563eb;
-$accent-purple: #8b5cf6;
+// ═══════════════════════════════════════════
+// Text
+// ═══════════════════════════════════════════
+$text-primary:   #e6edf3;
+$text-secondary: #8b949e;
+$text-muted:     #484f58;
+$text-white:     #ffffff;
 
-// Status colors - Success
-$success-bg: #065f46;
-$success-text: #6ee7b7;
+// ═══════════════════════════════════════════
+// Accents
+// ═══════════════════════════════════════════
+$accent-blue:       #58a6ff;
+$accent-blue-dark:  #1f6feb;
+$accent-blue-muted: rgba(88, 166, 255, 0.15);
+$accent-purple:     #bc8cff;
 
-// Status colors - Error
-$error-bg: #991b1b;
-$error-text: #fecaca;
+// ═══════════════════════════════════════════
+// Status
+// ═══════════════════════════════════════════
+$success-text:  #3fb950;
+$success-bg:    rgba(63, 185, 80, 0.12);
+$warning-text:  #d29922;
+$warning-bg:    rgba(210, 153, 34, 0.12);
+$error-text:    #f85149;
+$error-bg:      rgba(248, 81, 73, 0.12);
+$info-text:     #79c0ff;
+$info-bg:       rgba(121, 192, 255, 0.10);
 
-// Status colors - Warning
-$warning-bg: #854d0e;
-$warning-text: #fde047;
+$status-success:      #3fb950;
+$status-client-error: #d29922;
+$status-server-error: #f85149;
 
-// Status colors - Info
-$info-bg: #2a2a2e;
-$info-text: #9ca3af;
-
+// ═══════════════════════════════════════════
 // Method colors
-$method-get-bg: #065f46;
-$method-get-text: #6ee7b7;
-$method-post-bg: #1e3a8a;
-$method-post-text: #93c5fd;
-$method-put-bg: #92400e;
-$method-put-text: #fcd34d;
-$method-delete-bg: #991b1b;
-$method-delete-text: #fecaca;
-$method-ws-bg: #5b21b6;
-$method-ws-text: #c4b5fd;
-$method-default-bg: #2a2a2e;
-$method-default-text: #a1a1aa;
+// ═══════════════════════════════════════════
+$method-get-text:     #3fb950;
+$method-get-bg:       rgba(63, 185, 80, 0.13);
+$method-post-text:    #58a6ff;
+$method-post-bg:      rgba(88, 166, 255, 0.13);
+$method-put-text:     #d29922;
+$method-put-bg:       rgba(210, 153, 34, 0.13);
+$method-delete-text:  #f85149;
+$method-delete-bg:    rgba(248, 81, 73, 0.13);
+$method-patch-text:   #bc8cff;
+$method-patch-bg:     rgba(188, 140, 255, 0.13);
+$method-ws-text:      #bc8cff;
+$method-ws-bg:        rgba(188, 140, 255, 0.13);
+$method-sse-text:     #79c0ff;
+$method-sse-bg:       rgba(121, 192, 255, 0.13);
+$method-default-text: #8b949e;
+$method-default-bg:   rgba(139, 148, 158, 0.10);
 
-// Status groups
-$status-success: #10b981;
-$status-client-error: #f59e0b;
-$status-server-error: #ef4444;
-
+// ═══════════════════════════════════════════
 // Borders
-$border-color: #2a2a2e;
-$border-radius-sm: 4px;
+// ═══════════════════════════════════════════
+$border-color:   #21262d;
+$border-default: #30363d;
+$border-radius-sm: 3px;
 $border-radius-md: 6px;
 $border-radius-lg: 8px;
 $border-radius-xl: 12px;
 
+// ═══════════════════════════════════════════
 // Shadows
-$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-$shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+// ═══════════════════════════════════════════
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+$shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px #21262d;
 
+// ═══════════════════════════════════════════
 // Spacing
+// ═══════════════════════════════════════════
 $spacing-xs: 4px;
 $spacing-sm: 8px;
 $spacing-md: 12px;
 $spacing-lg: 16px;
 $spacing-xl: 24px;
 
+// ═══════════════════════════════════════════
 // Typography
-$font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-$font-family-mono: 'Fira Code', 'Courier New', monospace;
-$font-size-xs: 10px;
-$font-size-sm: 11px;
-$font-size-md: 12px;
-$font-size-lg: 13px;
-$font-size-xl: 14px;
-$font-size-2xl: 24px;
+// ═══════════════════════════════════════════
+$font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+$font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+$font-size-xs:  10px;
+$font-size-sm:  11px;
+$font-size-md:  12px;
+$font-size-lg:  13px;
+$font-size-xl:  14px;
+$font-size-2xl: 20px;
 
+// ═══════════════════════════════════════════
 // Transitions
-$transition-fast: 0.15s ease;
+// ═══════════════════════════════════════════
+$transition-fast: 0.1s ease;
 $transition-base: 0.2s ease;
 $transition-slow: 0.3s ease;
 
+// ═══════════════════════════════════════════
 // Breakpoints
+// ═══════════════════════════════════════════
 $breakpoint-sm: 640px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1024px;
 $breakpoint-xl: 1280px;
 
-// Z-index layers
-$z-toggle: 9999;
+// ═══════════════════════════════════════════
+// Z-index
+// ═══════════════════════════════════════════
+$z-toggle:   9999;
 $z-debugger: 10000;

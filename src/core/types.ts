@@ -59,6 +59,29 @@ export interface UnifiedLogEntry {
     redirected: boolean
     retryCount: number
     timestamp: string
+    pending?: boolean      // true while request is in-flight
+    mocked?: boolean       // true if the response was returned by a mock rule
+    connectionId?: string  // WebSocket: shared ID for all events of one connection
+  }
+}
+
+// ─── Mock rules ───────────────────────────────────────────────────────────────
+
+export interface MockRule {
+  id: string
+  name?: string
+  enabled: boolean
+  /** String substring or RegExp tested against the full URL */
+  urlPattern: string | RegExp
+  /** If omitted, matches any HTTP method */
+  method?: string
+  response: {
+    status: number
+    statusText?: string
+    headers?: Record<string, string>
+    body?: unknown
+    /** Artificial delay in milliseconds before responding */
+    delay?: number
   }
 }
 
@@ -94,6 +117,15 @@ export interface NetworkDashboardOptions {
   }
   devOnly?: boolean
   persistToStorage?: boolean
+  ui?: {
+    hotkey?: string
+    hotkeyModifiers?: {
+      ctrl?: boolean
+      alt?: boolean
+      shift?: boolean
+      meta?: boolean
+    }
+  }
 }
 
 export interface NetworkStats {
@@ -131,7 +163,7 @@ export interface LogStore {
     statusCode?: number | number[]
   }): UnifiedLogEntry[]
   getStats(): NetworkStats
-  export(format: 'json' | 'csv'): string
+  export(format: 'json' | 'csv' | 'har'): string
   subscribe(callback: (entry: UnifiedLogEntry) => void): () => void
   getSize(): number
   isEmpty(): boolean

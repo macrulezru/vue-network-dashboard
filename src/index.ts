@@ -5,6 +5,7 @@ export type {
   UnifiedLogEntry,
   NetworkDashboardOptions,
   NetworkStats,
+  MockRule,
   LogStore as ILogStore,
   SanitizationRules
 } from './core/types'
@@ -59,3 +60,12 @@ export {
 
 // UI Component exports
 export { NetworkDebugger, type NetworkDebuggerProps } from './view'
+
+// Adapters (optional peer-dep integrations)
+export { createSentryAdapter }       from './adapters/sentry'
+export { createOpenTelemetryAdapter } from './adapters/opentelemetry'
+export type { SentryLike, SentryAdapterOptions }         from './adapters/sentry'
+export type { OTelTracerLike, OpenTelemetryAdapterOptions } from './adapters/opentelemetry'
+
+// DevTools integration
+export { setupDevtools } from './devtools'

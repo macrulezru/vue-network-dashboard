@@ -28,6 +28,7 @@ export interface FormatHTTPParams {
 
 export interface FormatWebSocketParams {
   id?: string
+  connectionId?: string
   url: string
   startTime: number
   endTime?: number | null
@@ -51,6 +52,7 @@ export interface FormatWebSocketParams {
 
 export interface FormatSSEParams {
   id?: string
+  connectionId?: string
   url: string
   startTime: number
   endTime?: number | null
@@ -338,7 +340,8 @@ export class WebSocketFormatter {
         clientType: 'websocket',
         redirected: false,
         retryCount: 0,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ...(params.connectionId ? { connectionId: params.connectionId } : {})
       }
     }
   }
@@ -426,7 +429,8 @@ export class SSEFormatter {
         clientType: 'eventsource',
         redirected: false,
         retryCount: 0,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ...(params.connectionId ? { connectionId: params.connectionId } : {})
       }
     }
   }

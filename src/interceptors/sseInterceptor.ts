@@ -165,7 +165,7 @@ export class SSEInterceptor {
    */
   private logConnection = (es: EventSource, context: SSELogContext): void => {
     const logEntry = this.options.formatter.sse.format({
-      id: context.id,
+      connectionId: context.id,
       url: context.url,
       startTime: context.startTime,
       eventType: null,
@@ -186,7 +186,7 @@ export class SSEInterceptor {
     const duration = endTime - context.startTime
 
     const logEntry = this.options.formatter.sse.format({
-      id: context.id,
+      connectionId: context.id,
       url: context.url,
       startTime: context.startTime,
       endTime,
@@ -223,7 +223,7 @@ export class SSEInterceptor {
     }
 
     const logEntry = this.options.formatter.sse.format({
-      id: context.id,
+      connectionId: context.id,
       url: context.url,
       startTime: Date.now(),
       eventType: eventType || 'message',
@@ -256,7 +256,7 @@ export class SSEInterceptor {
     const duration = endTime - context.startTime
 
     const logEntry = this.options.formatter.sse.format({
-      id: context.id,
+      connectionId: context.id,
       url: context.url,
       startTime: context.startTime,
       endTime,
@@ -287,7 +287,7 @@ export class SSEInterceptor {
     const duration = endTime - context.startTime
 
     const logEntry = this.options.formatter.sse.format({
-      id: context.id,
+      connectionId: context.id,
       url: context.url,
       startTime: context.startTime,
       endTime,

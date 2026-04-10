@@ -157,13 +157,13 @@ export class WebSocketInterceptor {
    */
   private logConnection = (ws: WebSocket, context: WebSocketLogContext): void => {
     const logEntry = this.options.formatter.websocket.format({
-      id: context.id,
       url: context.url,
       startTime: context.startTime,
       eventType: 'connection',
-      readyState: ws.readyState
+      readyState: ws.readyState,
+      connectionId: context.id
     })
-    
+
     this.options.onLog(logEntry)
   }
 
@@ -173,17 +173,17 @@ export class WebSocketInterceptor {
   private logOpen = (ws: WebSocket, context: WebSocketLogContext): void => {
     const endTime = Date.now()
     const duration = endTime - context.startTime
-    
+
     const logEntry = this.options.formatter.websocket.format({
-      id: context.id,
       url: context.url,
       startTime: context.startTime,
       endTime,
       duration,
       eventType: 'open',
-      readyState: ws.readyState
+      readyState: ws.readyState,
+      connectionId: context.id
     })
-    
+
     this.options.onLog(logEntry)
   }
 
@@ -197,15 +197,15 @@ export class WebSocketInterceptor {
     direction: 'incoming' | 'outgoing'
   ): void => {
     const logEntry = this.options.formatter.websocket.format({
-      id: context.id,
       url: context.url,
       startTime: Date.now(),
       eventType: 'message',
       direction,
       data: event.data,
-      readyState: ws.readyState
+      readyState: ws.readyState,
+      connectionId: context.id
     })
-    
+
     this.options.onLog(logEntry)
   }
 
@@ -218,11 +218,11 @@ export class WebSocketInterceptor {
     event: Event
   ): void => {
     const logEntry = this.options.formatter.websocket.format({
-      id: context.id,
       url: context.url,
       startTime: Date.now(),
       eventType: 'error',
       readyState: ws.readyState,
+      connectionId: context.id,
       error: {
         occurred: true,
         message: event.type,
@@ -230,7 +230,7 @@ export class WebSocketInterceptor {
         stack: null
       }
     })
-    
+
     this.options.onLog(logEntry)
   }
 
@@ -244,22 +244,22 @@ export class WebSocketInterceptor {
   ): void => {
     const endTime = Date.now()
     const duration = endTime - context.startTime
-    
+
     const logEntry = this.options.formatter.websocket.format({
-      id: context.id,
       url: context.url,
       startTime: context.startTime,
       endTime,
       duration,
       eventType: 'close',
       readyState: ws.readyState,
+      connectionId: context.id,
       closeInfo: {
         code: event.code,
         reason: event.reason,
         wasClean: event.wasClean
       }
     })
-    
+
     this.options.onLog(logEntry)
   }
 }

@@ -1,9 +1,11 @@
-import type { UnifiedLogEntry } from '../core/types'
+import type { UnifiedLogEntry, MockRule } from '../core/types'
 import { LogFormatter } from '../core/formatters'
 import { getContentType, parseHeaders } from '../utils/helpers'
 
 export interface XHRInterceptorOptions {
   onLog: (entry: UnifiedLogEntry) => void
+  onUpdateLog?: (id: string, updates: Partial<UnifiedLogEntry>) => void
+  getMock?: (url: string, method: string) => MockRule | null
   formatter: LogFormatter
   shouldLog?: (url: string, method: string) => boolean
 }
@@ -131,6 +133,15 @@ export class XHRInterceptor {
       clientType: 'xhr'
     })
 
+    // Check for a matching mock rule — if matched, do not make the real XHR
+    const mockRule = this.options.getMock?.(url, method) ?? null
+    if (mockRule) {
+      this.handleMock(logEntry, mockRule, startTime)
+      // Abort the real XHR silently by making it point to an unused endpoint
+      // (We can't prevent send() from being called, but the response will be ignored)
+      return
+    }
+
     // Store context for this request
     const context: XHRLogContext = {
       id: logEntry.id,
@@ -144,11 +155,37 @@ export class XHRInterceptor {
 
     this.activeRequests.set(xhr, context)
 
-    // Log request start
-    this.options.onLog(logEntry)
+    // Log as pending immediately
+    this.options.onLog({ ...logEntry, metadata: { ...logEntry.metadata, pending: true } })
 
-    // Attach event listeners
+    // Attach event listeners to update on completion
     this.attachEventListeners(xhr, context)
+  }
+
+  private handleMock = (
+    logEntry: UnifiedLogEntry,
+    rule: MockRule,
+    startTime: number
+  ): void => {
+    const delay = rule.response.delay ?? 0
+    setTimeout(() => {
+      const endTime = Date.now()
+      const mockHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...rule.response.headers
+      }
+      const enrichedEntry = this.options.formatter.http.formatResponse(logEntry, {
+        status: rule.response.status,
+        statusText: rule.response.statusText || 'OK (Mock)',
+        responseHeaders: mockHeaders,
+        responseBody: rule.response.body ?? null,
+        endTime
+      })
+      this.options.onLog({
+        ...enrichedEntry,
+        metadata: { ...enrichedEntry.metadata, pending: false, mocked: true }
+      })
+    }, delay)
   }
 
   /**
@@ -177,27 +214,32 @@ export class XHRInterceptor {
       this.openData.delete(xhr)
     }
 
+    const complete = (entry: UnifiedLogEntry) => {
+      const updates = { ...entry, metadata: { ...entry.metadata, pending: false } }
+      if (this.options.onUpdateLog) {
+        this.options.onUpdateLog(context.id, updates)
+      } else {
+        this.options.onLog(updates)
+      }
+    }
+
     xhr.addEventListener('load', () => {
-      const endTime = Date.now()
-      this.options.onLog(this.processResponse(context, xhr, endTime))
+      complete(this.processResponse(context, xhr, Date.now()))
       cleanup()
     })
 
     xhr.addEventListener('error', () => {
-      const endTime = Date.now()
-      this.options.onLog(this.processError(context, xhr, endTime))
+      complete(this.processError(context, xhr, Date.now()))
       cleanup()
     })
 
     xhr.addEventListener('abort', () => {
-      const endTime = Date.now()
-      this.options.onLog(this.processAbort(context, endTime))
+      complete(this.processAbort(context, Date.now()))
       cleanup()
     })
 
     xhr.addEventListener('timeout', () => {
-      const endTime = Date.now()
-      this.options.onLog(this.processTimeout(context, endTime))
+      complete(this.processTimeout(context, Date.now()))
       cleanup()
     })
   }

@@ -35,7 +35,13 @@ export default defineConfig(({ command }): UserConfig => {
         fileName: (format) => `vue-network-dashboard.${format === 'es' ? 'esm' : 'umd'}.js`
       },
       rollupOptions: {
-        external: ['vue'],
+        external: [
+          'vue',
+          '@vue/devtools-api',
+          '@nuxt/kit',
+          '#app',
+          /^@nuxt\//
+        ],
         output: {
           globals: {
             vue: 'Vue'
@@ -58,7 +64,12 @@ export default defineConfig(({ command }): UserConfig => {
       vue(),
       dts({
         insertTypesEntry: true,
-        rollupTypes: true
+        rollupTypes: true,
+        exclude: [
+          'src/nuxt.ts',
+          'src/runtime/**',
+          'demo/**'
+        ]
       })
     ],
     resolve: {

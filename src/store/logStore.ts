@@ -44,6 +44,16 @@ export class LogStore implements ILogStore {
   }
 
   /**
+   * Update an existing log entry in-place (used for pending → completed transition)
+   */
+  public updateLog = (id: string, updates: Partial<UnifiedLogEntry>): void => {
+    const entry = this.logsRef.value.find(l => l.id === id)
+    if (entry) {
+      Object.assign(entry, updates)
+    }
+  }
+
+  /**
    * Add a new log entry
    * Automatically maintains maxLogs limit (FIFO)
    */
@@ -270,11 +280,15 @@ export class LogStore implements ILogStore {
   /**
    * Export logs in specified format
    */
-  public export = (format: 'json' | 'csv' = 'json'): string => {
+  public export = (format: 'json' | 'csv' | 'har' = 'json'): string => {
     if (format === 'json') {
       return JSON.stringify(this.logsRef.value, null, 2)
     }
-    
+
+    if (format === 'har') {
+      return this.exportHAR()
+    }
+
     // CSV format
     if (format === 'csv') {
       const headers = [
@@ -359,5 +373,87 @@ export class LogStore implements ILogStore {
    */
   public pruneOlderThan = (timestamp: number): void => {
     this.logsRef.value = this.logsRef.value.filter(log => log.startTime >= timestamp)
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────────
+
+  private exportHAR = (): string => {
+    const entries = this.logsRef.value
+      .filter(log => log.type === 'http' && !log.metadata.pending)
+      .map(log => {
+        const reqHeaders = Object.entries(log.requestHeaders)
+          .map(([name, value]) => ({ name, value }))
+        const resHeaders = Object.entries(log.responseHeaders)
+          .map(([name, value]) => ({ name, value }))
+
+        let queryString: Array<{ name: string; value: string }> = []
+        try {
+          const u = new URL(log.url)
+          u.searchParams.forEach((value, name) => queryString.push({ name, value }))
+        } catch { /* relative URLs */ }
+
+        const reqBodyText = log.request.body == null
+          ? undefined
+          : typeof log.request.body === 'string'
+            ? log.request.body
+            : JSON.stringify(log.request.body)
+
+        const resBodyText = log.response.body == null
+          ? undefined
+          : typeof log.response.body === 'string'
+            ? log.response.body
+            : JSON.stringify(log.response.body)
+
+        return {
+          startedDateTime: new Date(log.startTime).toISOString(),
+          time: log.duration ?? 0,
+          request: {
+            method: log.method,
+            url: log.url,
+            httpVersion: log.http?.protocol || 'HTTP/1.1',
+            headers: reqHeaders,
+            queryString,
+            cookies: [],
+            headersSize: -1,
+            bodySize: log.request.bodySize ?? 0,
+            ...(reqBodyText !== undefined ? {
+              postData: {
+                mimeType: log.request.bodyType || 'application/octet-stream',
+                text: reqBodyText
+              }
+            } : {})
+          },
+          response: {
+            status: log.http?.status ?? 0,
+            statusText: log.http?.statusText ?? '',
+            httpVersion: log.http?.protocol || 'HTTP/1.1',
+            headers: resHeaders,
+            cookies: [],
+            content: {
+              size: log.response.bodySize ?? 0,
+              mimeType: log.response.bodyType || 'application/octet-stream',
+              ...(resBodyText !== undefined ? { text: resBodyText } : {})
+            },
+            redirectURL: '',
+            headersSize: -1,
+            bodySize: log.response.bodySize ?? 0
+          },
+          cache: {},
+          timings: {
+            send: 0,
+            wait: log.duration ?? 0,
+            receive: 0
+          }
+        }
+      })
+
+    return JSON.stringify({
+      log: {
+        version: '1.2',
+        creator: { name: 'vue-network-dashboard', version: '0.1.0' },
+        browser: { name: navigator.userAgent, version: '' },
+        entries
+      }
+    }, null, 2)
   }
 }
