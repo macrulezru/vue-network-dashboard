@@ -1,7 +1,7 @@
 import type { App, Ref, Plugin } from 'vue'
 import { computed, inject } from 'vue'
 import { NetworkDashboard } from '../core/NetworkDashboard'
-import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats } from '../core/types'
+import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats, MockRule } from '../core/types'
 
 export interface VueNetworkDashboardInstance {
   logs: Ref<UnifiedLogEntry[]>
@@ -16,7 +16,7 @@ export interface VueNetworkDashboardInstance {
   isEnabled: () => boolean
   getStats: () => NetworkStats
   getStatsSummary: () => string
-  export: (format?: 'json' | 'csv') => string
+  export: (format?: 'json' | 'csv' | 'har') => string
   getLogsByType: (type: 'http' | 'websocket' | 'sse') => UnifiedLogEntry[]
   getLogsByUrl: (urlPattern: string | RegExp) => UnifiedLogEntry[]
   getLogsByStatus: (statusRange: [number, number]) => UnifiedLogEntry[]
@@ -24,6 +24,12 @@ export interface VueNetworkDashboardInstance {
   getErrorLogs: () => UnifiedLogEntry[]
   queryLogs: (filters: any) => UnifiedLogEntry[]
   subscribe: (callback: (entry: UnifiedLogEntry) => void) => () => void
+  // Mock API
+  addMock: (rule: Omit<MockRule, 'id'>) => MockRule
+  updateMock: (id: string, updates: Partial<Omit<MockRule, 'id'>>) => void
+  removeMock: (id: string) => void
+  clearMocks: () => void
+  getMocks: () => MockRule[]
   _logger: NetworkDashboard
 }
 
@@ -44,7 +50,7 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
     isEnabled: () => logger.getEnabled(),
     getStats: () => logger.getStats(),
     getStatsSummary: () => logger.getStatsSummary(),
-    export: (format = 'json') => logger.export(format),
+    export: (format: 'json' | 'csv' | 'har' = 'json') => logger.export(format),
     getLogsByType: (type) => logger.getLogsByType(type),
     getLogsByUrl: (urlPattern) => logger.getLogsByUrl(urlPattern),
     getLogsByStatus: (statusRange) => logger.getLogsByStatus(statusRange),
@@ -52,6 +58,11 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
     getErrorLogs: () => logger.getErrorLogs(),
     queryLogs: (filters) => logger.queryLogs(filters),
     subscribe: (callback) => logger.subscribe(callback),
+    addMock: (rule) => logger.addMock(rule),
+    updateMock: (id, updates) => logger.updateMock(id, updates),
+    removeMock: (id) => logger.removeMock(id),
+    clearMocks: () => logger.clearMocks(),
+    getMocks: () => logger.getMocks(),
     _logger: logger
   }
 }
@@ -60,13 +71,14 @@ export const NetworkDashboardPlugin: Plugin = {
   install(app: App, options: NetworkDashboardOptions = {}) {
     const logger = new NetworkDashboard(options)
     const reactiveLogger = createReactiveLogger(logger)
-    
+
     // Provide to entire app
     app.provide('networkDashboard', reactiveLogger)
-    
+    app.provide('networkDashboardUi', options.ui ?? {})
+
     // Add to global properties
     app.config.globalProperties.$networkDashboard = reactiveLogger
-    
+
     // Cleanup on app unmount
     const originalUnmount = app.unmount
     app.unmount = function() {

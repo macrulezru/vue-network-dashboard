@@ -9,18 +9,27 @@ app.use(NetworkDashboardPlugin, {
   maxLogs: 500,
   devOnly: false,
   interceptors: {
-    fetch: true,
-    xhr: true,
+    fetch:     true,
+    xhr:       true,
     websocket: true,
-    sse: true
+    sse:       true
   },
   filters: {
     excludeUrlPattern: /\/health|\/metrics/
   },
   sanitization: {
     sensitiveHeaders: ['authorization', 'cookie', 'x-api-key'],
-    sensitiveFields: ['password', 'token', 'secret'],
-    maskFields: ['email', 'phone']
+    sensitiveFields:  ['password', 'token', 'secret'],
+    maskFields:       ['email', 'phone']
+  },
+  callbacks: {
+    onLog:   (entry) => { /* hook for external monitoring */ },
+    onError: (err)   => console.error('[NetworkDashboard]', err)
+  },
+  // Hotkey: Ctrl+Shift+D to toggle the panel
+  ui: {
+    hotkey: 'd',
+    hotkeyModifiers: { ctrl: true, shift: true }
   }
 })
 

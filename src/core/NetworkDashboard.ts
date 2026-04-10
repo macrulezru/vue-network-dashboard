@@ -2,7 +2,8 @@ import type { Ref } from 'vue'
 import type {
   UnifiedLogEntry,
   NetworkDashboardOptions,
-  NetworkStats
+  NetworkStats,
+  MockRule
 } from './types'
 import { LogStore as LogStoreImpl } from '../store/logStore'
 import { LogFormatter } from './formatters'
@@ -37,6 +38,7 @@ export class NetworkDashboard {
   private isEnabled: boolean = false
   private isDev: boolean = false
   private saveStorageTimer: ReturnType<typeof setTimeout> | null = null
+  private mockRules: Map<string, MockRule> = new Map()
 
   /**
    * Create a new NetworkDashboard instance
@@ -115,11 +117,15 @@ export class NetworkDashboard {
 
     const shouldLog = this.createShouldLogFilter()
     const onLog = this.handleLog.bind(this)
+    const onUpdateLog = this.handleUpdateLog.bind(this)
+    const getMock = this.getMockForRequest.bind(this)
 
     // Initialize interceptors with formatter
     if (this.options.interceptors?.fetch) {
       const fetchOptions: FetchInterceptorOptions = {
         onLog,
+        onUpdateLog,
+        getMock,
         formatter: this.formatter,
         shouldLog
       }
@@ -130,6 +136,8 @@ export class NetworkDashboard {
     if (this.options.interceptors?.xhr) {
       const xhrOptions: XHRInterceptorOptions = {
         onLog,
+        onUpdateLog,
+        getMock,
         formatter: this.formatter,
         shouldLog
       }
@@ -246,6 +254,63 @@ export class NetworkDashboard {
     if (this.options.persistToStorage) {
       this.saveToStorage()
     }
+  }
+
+  /**
+   * Update an existing log entry in-place (pending → complete transition)
+   */
+  private handleUpdateLog = (id: string, updates: Partial<UnifiedLogEntry>): void => {
+    this.store.updateLog(id, updates)
+    if (this.options.persistToStorage) {
+      this.saveToStorage()
+    }
+  }
+
+  /**
+   * Find the first enabled mock rule that matches a request
+   */
+  private getMockForRequest = (url: string, method: string): MockRule | null => {
+    for (const rule of this.mockRules.values()) {
+      if (!rule.enabled) continue
+      if (rule.method && rule.method.toUpperCase() !== method.toUpperCase()) continue
+      const pattern = rule.urlPattern instanceof RegExp
+        ? rule.urlPattern
+        : new RegExp(rule.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      if (pattern.test(url)) return rule
+    }
+    return null
+  }
+
+  // ─── Public mock API ───────────────────────────────────────────────────────────
+
+  public addMock = (rule: Omit<MockRule, 'id'>): MockRule => {
+    const id = Math.random().toString(36).slice(2)
+    const fullRule: MockRule = { ...rule, id }
+    this.mockRules.set(id, fullRule)
+    return fullRule
+  }
+
+  public updateMock = (id: string, updates: Partial<Omit<MockRule, 'id'>>): void => {
+    const rule = this.mockRules.get(id)
+    if (rule) this.mockRules.set(id, { ...rule, ...updates })
+  }
+
+  public removeMock = (id: string): void => {
+    this.mockRules.delete(id)
+  }
+
+  public clearMocks = (): void => {
+    this.mockRules.clear()
+  }
+
+  public getMocks = (): MockRule[] => {
+    return Array.from(this.mockRules.values())
+  }
+
+  // ─── Public updateLog ──────────────────────────────────────────────────────────
+
+  public updateLog = (id: string, updates: Partial<UnifiedLogEntry>): void => {
+    this.store.updateLog(id, updates)
   }
 
   /**
@@ -384,7 +449,7 @@ export class NetworkDashboard {
   /**
    * Export logs in specified format
    */
-  public export = (format: 'json' | 'csv' = 'json'): string => {
+  public export = (format: 'json' | 'csv' | 'har' = 'json'): string => {
     return this.store.export(format)
   }
 
