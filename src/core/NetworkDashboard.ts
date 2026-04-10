@@ -39,6 +39,7 @@ export class NetworkDashboard {
   private isDev: boolean = false
   private saveStorageTimer: ReturnType<typeof setTimeout> | null = null
   private mockRules: Map<string, MockRule> = new Map()
+  private mockChangeCallbacks: Set<() => void> = new Set()
 
   /**
    * Create a new NetworkDashboard instance
@@ -281,26 +282,57 @@ export class NetworkDashboard {
     return null
   }
 
+  /**
+   * Notify all subscribers about mock changes
+   */
+  private notifyMocksChange = (): void => {
+    this.mockChangeCallbacks.forEach(callback => {
+      try {
+        callback()
+      } catch (error) {
+        console.error('[NetworkDashboard] Mock change callback error:', error)
+      }
+    })
+  }
+
+  /**
+   * Subscribe to mock changes
+   * @param callback - Function to call when mocks change
+   * @returns Unsubscribe function
+   */
+  public onMocksChange = (callback: () => void): () => void => {
+    this.mockChangeCallbacks.add(callback)
+    return () => {
+      this.mockChangeCallbacks.delete(callback)
+    }
+  }
+
   // ─── Public mock API ───────────────────────────────────────────────────────────
 
   public addMock = (rule: Omit<MockRule, 'id'>): MockRule => {
     const id = Math.random().toString(36).slice(2)
     const fullRule: MockRule = { ...rule, id }
     this.mockRules.set(id, fullRule)
+    this.notifyMocksChange()
     return fullRule
   }
 
   public updateMock = (id: string, updates: Partial<Omit<MockRule, 'id'>>): void => {
     const rule = this.mockRules.get(id)
-    if (rule) this.mockRules.set(id, { ...rule, ...updates })
+    if (rule) {
+      this.mockRules.set(id, { ...rule, ...updates })
+      this.notifyMocksChange()
+    }
   }
 
   public removeMock = (id: string): void => {
     this.mockRules.delete(id)
+    this.notifyMocksChange()
   }
 
   public clearMocks = (): void => {
     this.mockRules.clear()
+    this.notifyMocksChange()
   }
 
   public getMocks = (): MockRule[] => {
@@ -581,6 +613,7 @@ export class NetworkDashboard {
   public destroy = (): void => {
     this.disable()
     this.clear()
+    this.mockChangeCallbacks.clear()
     
     if (this.options.persistToStorage) {
       localStorage.removeItem('vue-network-dashboard')
