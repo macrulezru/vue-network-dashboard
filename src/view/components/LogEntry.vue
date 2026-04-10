@@ -115,7 +115,7 @@ const toggleDiff = (e: MouseEvent) => {
   <div :class="['log-entry', log.type, { 'has-error': log.error.occurred, expanded: isExpanded, 'is-pending': isPending, 'is-mocked': isMocked, 'diff-selected': diffSelected }]">
 
     <!-- Summary row -->
-    <div class="log-summary" @click="toggleExpand">
+    <div :class="['log-summary', { 'diff-mode': diffMode }]" @click="toggleExpand">
       <!-- Chevron / pending spinner -->
       <span class="log-chevron">
         <svg v-if="!isPending" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -151,11 +151,14 @@ const toggleDiff = (e: MouseEvent) => {
 
       <!-- Time -->
       <span class="log-time">{{ formatTime(log.startTime) }}</span>
-    </div>
 
-    <!-- Diff select button (shown when diffMode is on) -->
-    <div v-if="diffMode && !isPending" class="diff-select-area" @click.stop="toggleDiff">
-      <button :class="['diff-select-btn', { active: diffSelected }]" :title="diffSelected ? 'Remove from diff' : 'Select for diff'">
+      <!-- Diff select button — отдельная колонка грида в режиме diff -->
+      <button
+        v-if="diffMode && !isPending"
+        :class="['diff-select-btn', { active: diffSelected }]"
+        :title="diffSelected ? 'Remove from diff' : 'Select for diff'"
+        @click.stop="toggleDiff"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
         </svg>

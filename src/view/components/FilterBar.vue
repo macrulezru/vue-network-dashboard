@@ -1,9 +1,37 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import type { UnifiedLogEntry } from '../../core/types'
 import type { FilterOptions } from '../composables/useLogFilter'
+import FilterSelect from './FilterSelect.vue'
 
-const props = defineProps<{ filters: FilterOptions }>()
+const props = defineProps<{
+  filters: FilterOptions
+  logs: UnifiedLogEntry[]
+}>()
 
 const emit = defineEmits<{ 'update:filters': [filters: FilterOptions] }>()
+
+const methodOptions = computed(() => {
+  const methods = new Set<string>()
+  const source = props.filters.status
+    ? props.logs.filter(log => log.http?.status?.toString() === props.filters.status)
+    : props.logs
+  for (const log of source) {
+    if (log.method) methods.add(log.method.toUpperCase())
+  }
+  return [...methods].sort()
+})
+
+const statusOptions = computed(() => {
+  const codes = new Set<string>()
+  const source = props.filters.method
+    ? props.logs.filter(log => log.method.toUpperCase() === props.filters.method.toUpperCase())
+    : props.logs
+  for (const log of source) {
+    if (log.http?.status) codes.add(log.http.status.toString())
+  }
+  return [...codes].sort((a, b) => Number(a) - Number(b))
+})
 
 const setType = (type: FilterOptions['type']) => {
   emit('update:filters', { ...props.filters, type })
@@ -17,12 +45,12 @@ const setBody = (e: Event) => {
   emit('update:filters', { ...props.filters, body: (e.target as HTMLInputElement).value })
 }
 
-const setMethod = (e: Event) => {
-  emit('update:filters', { ...props.filters, method: (e.target as HTMLInputElement).value })
+const setMethod = (value: string) => {
+  emit('update:filters', { ...props.filters, method: value })
 }
 
-const setStatus = (e: Event) => {
-  emit('update:filters', { ...props.filters, status: (e.target as HTMLInputElement).value })
+const setStatus = (value: string) => {
+  emit('update:filters', { ...props.filters, status: value })
 }
 
 const setMinDuration = (e: Event) => {
@@ -85,22 +113,21 @@ const resetFilters = () => {
       @input="setBody"
     />
 
-    <!-- Method -->
-    <input
-      :value="filters.method"
-      type="text"
+    <!-- Method select -->
+    <FilterSelect
+      :model-value="filters.method"
+      :options="methodOptions"
       placeholder="Method"
-      class="filter-input-plain filter-input-sm"
-      @input="setMethod"
+      @update:model-value="setMethod"
     />
 
-    <!-- Status -->
-    <input
-      :value="filters.status"
-      type="text"
+    <!-- Status select -->
+    <FilterSelect
+      :model-value="filters.status"
+      :options="statusOptions"
       placeholder="Status"
-      class="filter-input-plain filter-input-sm"
-      @input="setStatus"
+      class="filter-select-sm"
+      @update:model-value="setStatus"
     />
 
     <!-- Min duration -->

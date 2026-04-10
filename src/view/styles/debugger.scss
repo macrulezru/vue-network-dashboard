@@ -419,6 +419,115 @@
   }
 }
 
+// ─── FilterSelect ─────────────────────────────────────────────────────────────
+
+.filter-select {
+  position: relative;
+  flex-shrink: 0;
+  width: 80px;
+
+  &.filter-select-sm { width: 72px; }
+
+  &-trigger {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: variables.$bg-elevated;
+    border: 1px solid variables.$border-color;
+    border-radius: variables.$border-radius-md;
+    padding: 5px 4px 5px 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color variables.$transition-fast;
+    box-sizing: border-box;
+    width: 100%;
+
+    &:hover { border-color: variables.$border-default; }
+  }
+
+  &.open .filter-select-trigger { border-color: variables.$accent-blue; }
+  &.has-value .filter-select-trigger { border-color: variables.$accent-blue; }
+
+  &-value {
+    flex: 1;
+    font-size: variables.$font-size-md;
+    font-family: variables.$font-family-mono;
+    color: variables.$text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+
+    &.placeholder { color: variables.$text-muted; }
+  }
+
+  &-arrow {
+    width: 11px;
+    height: 11px;
+    color: variables.$text-muted;
+    stroke-width: 2.5;
+    flex-shrink: 0;
+    transition: transform variables.$transition-fast;
+
+    .open & { transform: rotate(180deg); }
+  }
+
+  &-clear {
+    @include mixins.button-reset;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+    color: variables.$text-muted;
+    flex-shrink: 0;
+    border-radius: 2px;
+
+    &:hover { color: variables.$error-text; }
+  }
+
+  &-dropdown {
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 0;
+    min-width: 100%;
+    background: variables.$bg-overlay;
+    border: 1px solid variables.$border-color;
+    border-radius: variables.$border-radius-md;
+    padding: 3px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  }
+
+  &-option {
+    @include mixins.button-reset;
+    padding: 4px 8px;
+    font-size: variables.$font-size-sm;
+    font-family: variables.$font-family-mono;
+    color: variables.$text-secondary;
+    border-radius: variables.$border-radius-sm;
+    text-align: left;
+    width: 100%;
+    transition: all variables.$transition-fast;
+    white-space: nowrap;
+
+    &:hover {
+      background: variables.$bg-hover;
+      color: variables.$text-primary;
+    }
+
+    &.active {
+      background: variables.$accent-blue-muted;
+      color: variables.$accent-blue;
+    }
+  }
+}
+
 // ─── Content area ─────────────────────────────────────────────────────────────
 
 .debugger-content {
@@ -492,6 +601,11 @@
   cursor: pointer;
   user-select: none;
   min-height: 32px;
+
+  &.diff-mode {
+    grid-template-columns: 20px 110px 1fr 58px 64px 58px 68px 28px;
+    padding-right: variables.$spacing-sm;
+  }
 }
 
 .log-chevron {
@@ -1105,18 +1219,6 @@
 }
 
 // ─── Diff select button ───────────────────────────────────────────────────────
-
-.diff-select-area {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  padding-right: variables.$spacing-sm;
-}
-
-.log-entry { position: relative; }
 
 .diff-select-btn {
   @include mixins.button-reset;

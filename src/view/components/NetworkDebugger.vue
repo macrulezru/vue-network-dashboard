@@ -68,7 +68,7 @@ const filteredLogs = computed(() => {
     result = result.filter(log => log.type === filters.value.type)
 
   if (filters.value.method)
-    result = result.filter(log => log.method.toUpperCase().includes(filters.value.method.toUpperCase()))
+    result = result.filter(log => log.method.toUpperCase() === filters.value.method.toUpperCase())
 
   if (filters.value.url)
     result = result.filter(log => log.url.toLowerCase().includes(filters.value.url.toLowerCase()))
@@ -85,7 +85,7 @@ const filteredLogs = computed(() => {
   if (filters.value.status)
     result = result.filter(log => {
       if (log.type !== 'http') return false
-      return (log.http?.status?.toString() || '').includes(filters.value.status)
+      return log.http?.status?.toString() === filters.value.status
     })
 
   if (filters.value.minDuration !== null)
@@ -134,7 +134,13 @@ const hasErrors = computed(() => dashboard.totalErrors.value > 0)
 const pendingCount = computed(() => logs.value.filter(l => l.metadata?.pending).length)
 
 // ── Diff selection ─────────────────────────────────────────────────────────────
+const diffMode = ref(false)
 const diffSet = ref<Set<string>>(new Set())
+
+const toggleDiffMode = () => {
+  diffMode.value = !diffMode.value
+  if (!diffMode.value) diffSet.value.clear()
+}
 
 const toggleDiff = (id: string) => {
   if (diffSet.value.has(id)) {
@@ -157,7 +163,10 @@ const diffLogs = computed((): [UnifiedLogEntry, UnifiedLogEntry] | null => {
   return a && b ? [a, b] : null
 })
 
-const closeDiff = () => diffSet.value.clear()
+const closeDiff = () => {
+  diffSet.value.clear()
+  diffMode.value = false
+}
 
 // ── Drag to move ───────────────────────────────────────────────────────────────
 const containerRef = ref<HTMLElement | null>(null)
@@ -339,17 +348,17 @@ defineExpose({
               Group
             </button>
 
-            <!-- Diff mode indicator -->
+            <!-- Diff mode toggle -->
             <button
-              v-if="diffSet.size > 0"
-              :class="['btn-icon-label', { active: diffSet.size === 2 }]"
-              title="Comparing requests (click to cancel)"
-              @click="closeDiff"
+              :class="['btn-icon-label', { active: diffMode }]"
+              :title="diffMode ? `Diff mode on — ${diffSet.size}/2 selected (click to exit)` : 'Enable diff mode to compare two requests'"
+              @click="toggleDiffMode"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
               </svg>
-              {{ diffSet.size }}/2
+              <template v-if="diffMode">{{ diffSet.size }}/2</template>
+              <template v-else>Diff</template>
             </button>
 
             <!-- Pin -->
@@ -430,7 +439,7 @@ defineExpose({
         </div>
 
         <!-- Filter Bar -->
-        <FilterBar v-model:filters="filters" />
+        <FilterBar v-model:filters="filters" :logs="logs" />
 
         <!-- Tabs -->
         <div class="debugger-tabs">
@@ -499,7 +508,7 @@ defineExpose({
                     :log="log"
                     :expanded="expandedLogs.has(log.id)"
                     :diff-selected="diffSet.has(log.id)"
-                    :diff-mode="diffSet.size > 0"
+                    :diff-mode="diffMode"
                     @toggle-details="toggleDetails"
                     @toggle-diff="toggleDiff"
                   />
@@ -515,7 +524,7 @@ defineExpose({
                 :log="log"
                 :expanded="expandedLogs.has(log.id)"
                 :diff-selected="diffSet.has(log.id)"
-                :diff-mode="diffSet.size > 0"
+                :diff-mode="diffMode"
                 @toggle-details="toggleDetails"
                 @toggle-diff="toggleDiff"
               />
