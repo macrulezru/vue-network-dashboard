@@ -73,8 +73,10 @@ export class NetworkDashboard {
       }
     }
 
-    // Check if in development mode
-    this.isDev = import.meta.env.DEV
+    // Check if in development mode.
+    // Use process.env.NODE_ENV so tests can control this at runtime,
+    // and so Vite replaces it correctly in app builds (dev → true, prod → false).
+    this.isDev = (typeof process !== 'undefined' ? process.env['NODE_ENV'] : 'production') !== 'production'
 
     // Initialize store
     this.store = new LogStoreImpl(this.options.maxLogs)

@@ -106,6 +106,7 @@ describe('NetworkDashboard', () => {
   
   describe('persistToStorage', () => {
     it('should save logs to localStorage', () => {
+      vi.useFakeTimers()
       const storageLogger = new NetworkDashboard({
         enabled: false,
         persistToStorage: true,
@@ -134,12 +135,14 @@ describe('NetworkDashboard', () => {
       
       storageLogger['store'].addLog(log)
       storageLogger['saveToStorage']()
-      
+      vi.runAllTimers()
+
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'vue-network-dashboard',
         expect.any(String)
       )
-      
+
+      vi.useRealTimers()
       storageLogger.destroy()
     })
     
@@ -284,6 +287,192 @@ describe('NetworkDashboard', () => {
     })
   })
   
+  describe('mock API', () => {
+    it('should add a mock rule', () => {
+      const rule = logger.addMock({
+        name: 'Test mock',
+        urlPattern: '/api/users',
+        method: 'GET',
+        enabled: true,
+        response: { status: 200, body: { ok: true } }
+      })
+
+      expect(rule.id).toBeDefined()
+      expect(logger.getMocks()).toHaveLength(1)
+      expect(logger.getMocks()[0].name).toBe('Test mock')
+    })
+
+    it('should update a mock rule', () => {
+      const rule = logger.addMock({
+        name: 'Original',
+        urlPattern: '/api',
+        enabled: true,
+        response: { status: 200 }
+      })
+
+      logger.updateMock(rule.id, { name: 'Updated', response: { status: 404 } })
+
+      const updated = logger.getMocks()[0]
+      expect(updated.name).toBe('Updated')
+      expect(updated.response.status).toBe(404)
+    })
+
+    it('should do nothing when updating nonexistent mock', () => {
+      logger.addMock({ name: 'Keep', urlPattern: '/x', enabled: true, response: { status: 200 } })
+      expect(() => logger.updateMock('nonexistent-id', { name: 'Gone' })).not.toThrow()
+      expect(logger.getMocks()[0].name).toBe('Keep')
+    })
+
+    it('should remove a mock rule', () => {
+      const rule = logger.addMock({ name: 'Remove me', urlPattern: '/del', enabled: true, response: { status: 200 } })
+      expect(logger.getMocks()).toHaveLength(1)
+
+      logger.removeMock(rule.id)
+      expect(logger.getMocks()).toHaveLength(0)
+    })
+
+    it('should clear all mock rules', () => {
+      logger.addMock({ name: 'A', urlPattern: '/a', enabled: true, response: { status: 200 } })
+      logger.addMock({ name: 'B', urlPattern: '/b', enabled: true, response: { status: 201 } })
+      expect(logger.getMocks()).toHaveLength(2)
+
+      logger.clearMocks()
+      expect(logger.getMocks()).toHaveLength(0)
+    })
+
+    it('should notify onMocksChange subscribers', () => {
+      const callback = vi.fn()
+      const unsubscribe = logger.onMocksChange(callback)
+
+      const rule = logger.addMock({ name: 'X', urlPattern: '/x', enabled: true, response: { status: 200 } })
+      expect(callback).toHaveBeenCalledTimes(1)
+
+      logger.updateMock(rule.id, { name: 'X2' })
+      expect(callback).toHaveBeenCalledTimes(2)
+
+      logger.removeMock(rule.id)
+      expect(callback).toHaveBeenCalledTimes(3)
+
+      unsubscribe()
+      logger.addMock({ name: 'Y', urlPattern: '/y', enabled: true, response: { status: 200 } })
+      expect(callback).toHaveBeenCalledTimes(3) // no more calls after unsubscribe
+    })
+  })
+
+  describe('query methods with data', () => {
+    const makeLog = (overrides: Partial<UnifiedLogEntry> = {}): UnifiedLogEntry => ({
+      id: Math.random().toString(36).slice(2),
+      type: 'http',
+      startTime: Date.now(),
+      endTime: Date.now() + 100,
+      duration: 100,
+      url: 'https://api.example.com/data',
+      method: 'GET',
+      http: { status: 200, statusText: 'OK', protocol: null },
+      websocket: null,
+      sse: null,
+      requestHeaders: {},
+      responseHeaders: {},
+      request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+      response: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+      error: { occurred: false, message: null, name: null, stack: null },
+      metadata: { clientType: 'fetch', redirected: false, retryCount: 0, timestamp: new Date().toISOString() },
+      ...overrides
+    })
+
+    it('getLogsByUrl filters by string pattern', () => {
+      logger['store'].addLog(makeLog({ url: 'https://api.example.com/users' }))
+      logger['store'].addLog(makeLog({ url: 'https://api.example.com/posts' }))
+
+      const results = logger.getLogsByUrl('/users')
+      expect(results).toHaveLength(1)
+      expect(results[0].url).toContain('users')
+    })
+
+    it('getLogsByStatus filters by range', () => {
+      logger['store'].addLog(makeLog({ http: { status: 200, statusText: 'OK', protocol: null } }))
+      logger['store'].addLog(makeLog({ http: { status: 404, statusText: 'Not Found', protocol: null } }))
+      logger['store'].addLog(makeLog({ http: { status: 500, statusText: 'Error', protocol: null } }))
+
+      expect(logger.getLogsByStatus([200, 299])).toHaveLength(1)
+      expect(logger.getLogsByStatus([400, 599])).toHaveLength(2)
+    })
+
+    it('getLogsByMethod filters by method', () => {
+      logger['store'].addLog(makeLog({ method: 'GET' }))
+      logger['store'].addLog(makeLog({ method: 'POST' }))
+      logger['store'].addLog(makeLog({ method: 'POST' }))
+
+      expect(logger.getLogsByMethod('POST')).toHaveLength(2)
+      expect(logger.getLogsByMethod('GET')).toHaveLength(1)
+    })
+
+    it('getErrorLogs returns only failed entries', () => {
+      logger['store'].addLog(makeLog({ error: { occurred: false, message: null, name: null, stack: null } }))
+      logger['store'].addLog(makeLog({ error: { occurred: true, message: 'fail', name: 'Error', stack: null } }))
+
+      const errors = logger.getErrorLogs()
+      expect(errors).toHaveLength(1)
+      expect(errors[0].error.occurred).toBe(true)
+    })
+  })
+
+  describe('export HAR', () => {
+    it('should export HAR with HTTP entries', () => {
+      const log: UnifiedLogEntry = {
+        id: 'har1',
+        type: 'http',
+        startTime: Date.now(),
+        endTime: Date.now() + 200,
+        duration: 200,
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        http: { status: 200, statusText: 'OK', protocol: 'HTTP/1.1' },
+        websocket: null,
+        sse: null,
+        requestHeaders: { 'accept': 'application/json' },
+        responseHeaders: { 'content-type': 'application/json' },
+        request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+        response: { body: { ok: true }, bodyRaw: '{"ok":true}', bodySize: 12, bodyType: 'application/json' },
+        error: { occurred: false, message: null, name: null, stack: null },
+        metadata: { clientType: 'fetch', redirected: false, retryCount: 0, timestamp: new Date().toISOString() }
+      }
+      logger['store'].addLog(log)
+
+      const har = JSON.parse(logger.export('har'))
+      expect(har.log.version).toBe('1.2')
+      expect(har.log.entries).toHaveLength(1)
+      expect(har.log.entries[0].request.method).toBe('GET')
+      expect(har.log.entries[0].response.status).toBe(200)
+    })
+  })
+
+  describe('callbacks', () => {
+    it('should call onFlush after clear', () => {
+      const onFlush = vi.fn()
+      const cbLogger = new NetworkDashboard({
+        enabled: false,
+        callbacks: { onFlush },
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
+      })
+
+      const log: UnifiedLogEntry = {
+        id: 'flush1', type: 'http', startTime: Date.now(), endTime: null, duration: null,
+        url: 'https://x.com', method: 'GET', http: null, websocket: null, sse: null,
+        requestHeaders: {}, responseHeaders: {},
+        request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+        response: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+        error: { occurred: false, message: null, name: null, stack: null },
+        metadata: { clientType: 'fetch', redirected: false, retryCount: 0, timestamp: new Date().toISOString() }
+      }
+      cbLogger['store'].addLog(log)
+      cbLogger.clear()
+
+      expect(onFlush).toHaveBeenCalledWith([log])
+      cbLogger.destroy()
+    })
+  })
+
   describe('queryLogs', () => {
     it('should return empty array when no logs', () => {
       const results = logger.queryLogs({ type: 'http' })

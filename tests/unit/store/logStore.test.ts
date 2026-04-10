@@ -404,6 +404,84 @@ describe('LogStore', () => {
     })
   })
   
+  describe('updateLog', () => {
+    it('should update an existing log entry in-place', () => {
+      const log = createMockLog({ id: 'upd', duration: null })
+      store.addLog(log)
+
+      store.updateLog('upd', { duration: 123 })
+
+      expect(store.getLogs().find(l => l.id === 'upd')!.duration).toBe(123)
+    })
+
+    it('should do nothing when id not found', () => {
+      store.addLog(createMockLog({ id: 'a' }))
+      expect(() => store.updateLog('nonexistent', { duration: 999 })).not.toThrow()
+      expect(store.getLogs()[0].duration).toBeNull()
+    })
+  })
+
+  describe('export with data', () => {
+    beforeEach(() => {
+      store.addLog(createMockLog({
+        id: 'e1',
+        method: 'GET',
+        url: 'https://api.example.com/items',
+        duration: 150,
+        http: { status: 200, statusText: 'OK', protocol: 'HTTP/1.1' },
+        request: { body: null, bodyRaw: null, bodySize: 10, bodyType: 'application/json' },
+        response: { body: { ok: true }, bodyRaw: '{"ok":true}', bodySize: 11, bodyType: 'application/json' },
+        metadata: { clientType: 'fetch', redirected: false, retryCount: 0, timestamp: '2024-01-01T00:00:00.000Z' }
+      }))
+    })
+
+    it('should export CSV with data rows', () => {
+      const csv = store.export('csv')
+      const lines = csv.split('\n')
+      expect(lines).toHaveLength(2)
+      expect(lines[0]).toContain('id,type,method,url')
+      expect(lines[1]).toContain('e1')
+      expect(lines[1]).toContain('GET')
+      expect(lines[1]).toContain('200')
+      expect(lines[1]).toContain('150')
+    })
+
+    it('should export HAR format', () => {
+      const har = JSON.parse(store.export('har'))
+      expect(har.log.version).toBe('1.2')
+      expect(har.log.entries).toHaveLength(1)
+      const entry = har.log.entries[0]
+      expect(entry.request.method).toBe('GET')
+      expect(entry.request.url).toBe('https://api.example.com/items')
+      expect(entry.response.status).toBe(200)
+      expect(entry.time).toBe(150)
+    })
+
+    it('should exclude pending entries from HAR', () => {
+      store.addLog(createMockLog({
+        id: 'pending',
+        metadata: { clientType: 'fetch', redirected: false, retryCount: 0, timestamp: new Date().toISOString(), pending: true } as any
+      }))
+      const har = JSON.parse(store.export('har'))
+      expect(har.log.entries).toHaveLength(1)
+    })
+  })
+
+  describe('subscriber error handling', () => {
+    it('should continue notifying other subscribers when one throws', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const badCallback = vi.fn().mockImplementation(() => { throw new Error('oops') })
+      const goodCallback = vi.fn()
+
+      store.subscribe(badCallback)
+      store.subscribe(goodCallback)
+      store.addLog(createMockLog())
+
+      expect(goodCallback).toHaveBeenCalledOnce()
+      errorSpy.mockRestore()
+    })
+  })
+
   describe('getStats with real data', () => {
     it('should calculate correct statistics from logs', () => {
       store.addLog(createMockLog({
