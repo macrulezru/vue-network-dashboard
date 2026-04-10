@@ -1,6 +1,6 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Universal network logger for Vue 3 applications - intercepts HTTP and WebSocket traffic",
   "type": "module",
   "main": "./dist/vue-network-dashboard.umd.js",
