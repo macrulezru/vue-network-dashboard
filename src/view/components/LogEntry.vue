@@ -331,6 +331,12 @@ const toggleDiff = (e: MouseEvent) => {
             <span v-if="log.duration !== null" class="meta-chip"><strong>Duration</strong> {{ log.duration }}ms</span>
           </div>
         </div>
+        <div v-if="log.route" class="details-section">
+          <div class="section-header"><span>Route</span></div>
+          <div class="meta-chips">
+            <span class="meta-chip meta-chip-route">{{ log.route }}</span>
+          </div>
+        </div>
         <div class="details-section">
           <div class="section-header"><span>Transport</span></div>
           <div class="meta-chips">

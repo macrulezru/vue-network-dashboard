@@ -40,6 +40,8 @@ export class NetworkDashboard {
   private saveStorageTimer: ReturnType<typeof setTimeout> | null = null
   private mockRules: Map<string, MockRule> = new Map()
   private mockChangeCallbacks: Set<() => void> = new Set()
+  private currentRoute: string | undefined = undefined
+  private routerUnsubscribe: (() => void) | null = null
 
   /**
    * Create a new NetworkDashboard instance
@@ -95,6 +97,14 @@ export class NetworkDashboard {
     // Load persisted logs if enabled
     if (this.options.persistToStorage) {
       this.loadFromStorage()
+    }
+
+    // Subscribe to Vue Router if provided
+    if (options.enrichWithRoute && options.router) {
+      this.currentRoute = options.router.currentRoute.value.fullPath
+      this.routerUnsubscribe = options.router.afterEach((to) => {
+        this.currentRoute = to.fullPath
+      })
     }
 
     // Auto-enable if conditions met
@@ -239,6 +249,11 @@ export class NetworkDashboard {
       if (totalSize < this.options.filters.bodySizeThreshold) {
         return
       }
+    }
+
+    // Attach current route if enrichment is enabled
+    if (this.currentRoute !== undefined) {
+      entry.route = this.currentRoute
     }
 
     // Add to store
@@ -483,8 +498,8 @@ export class NetworkDashboard {
   /**
    * Export logs in specified format
    */
-  public export = (format: 'json' | 'csv' | 'har' = 'json'): string => {
-    return this.store.export(format)
+  public export = (format: 'json' | 'csv' | 'har' = 'json', customLogs?: UnifiedLogEntry[]): string => {
+    return this.store.export(format, customLogs)
   }
 
   /**
@@ -616,6 +631,8 @@ export class NetworkDashboard {
     this.disable()
     this.clear()
     this.mockChangeCallbacks.clear()
+    this.routerUnsubscribe?.()
+    this.routerUnsubscribe = null
     
     if (this.options.persistToStorage) {
       localStorage.removeItem('vue-network-dashboard')

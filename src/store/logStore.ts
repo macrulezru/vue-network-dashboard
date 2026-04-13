@@ -280,23 +280,25 @@ export class LogStore implements ILogStore {
   /**
    * Export logs in specified format
    */
-  public export = (format: 'json' | 'csv' | 'har' = 'json'): string => {
+  public export = (format: 'json' | 'csv' | 'har' = 'json', customLogs?: UnifiedLogEntry[]): string => {
+    const data = customLogs ?? this.logsRef.value
+
     if (format === 'json') {
-      return JSON.stringify(this.logsRef.value, null, 2)
+      return JSON.stringify(data, null, 2)
     }
 
     if (format === 'har') {
-      return this.exportHAR()
+      return this.exportHAR(data)
     }
 
     // CSV format
     if (format === 'csv') {
       const headers = [
-        'id', 'type', 'method', 'url', 'status', 'duration', 
+        'id', 'type', 'method', 'url', 'status', 'duration',
         'requestSize', 'responseSize', 'error', 'timestamp'
       ]
-      
-      const rows = this.logsRef.value.map(log => {
+
+      const rows = data.map(log => {
         const row = [
           log.id,
           log.type,
@@ -377,8 +379,8 @@ export class LogStore implements ILogStore {
 
   // ─── Private helpers ──────────────────────────────────────────────────────────
 
-  private exportHAR = (): string => {
-    const entries = this.logsRef.value
+  private exportHAR = (data?: UnifiedLogEntry[]): string => {
+    const entries = (data ?? this.logsRef.value)
       .filter(log => log.type === 'http' && !log.metadata.pending)
       .map(log => {
         const reqHeaders = Object.entries(log.requestHeaders)

@@ -63,6 +63,9 @@ export interface UnifiedLogEntry {
     mocked?: boolean       // true if the response was returned by a mock rule
     connectionId?: string  // WebSocket: shared ID for all events of one connection
   }
+
+  /** Vue Router route path at the moment the request was initiated */
+  route?: string
 }
 
 // ─── Mock rules ───────────────────────────────────────────────────────────────
@@ -85,9 +88,25 @@ export interface MockRule {
   }
 }
 
+/**
+ * Minimal interface for Vue Router — avoids a hard dependency on vue-router.
+ * Any Router instance (vue-router v4) satisfies this shape.
+ */
+export interface RouterInstance {
+  currentRoute: { value: { fullPath: string; name?: string | symbol | null } }
+  afterEach(guard: (to: { fullPath: string; name?: string | symbol | null }) => void): () => void
+}
+
 export interface NetworkDashboardOptions {
   enabled?: boolean
   maxLogs?: number
+  /**
+   * Vue Router instance. When provided together with `enrichWithRoute: true`,
+   * each log entry will carry the current route path at the time of the request.
+   */
+  router?: RouterInstance
+  /** Attach the current Vue Router route to every log entry. Requires `router`. */
+  enrichWithRoute?: boolean
   interceptors?: {
     fetch?: boolean
     xhr?: boolean
@@ -163,7 +182,7 @@ export interface LogStore {
     statusCode?: number | number[]
   }): UnifiedLogEntry[]
   getStats(): NetworkStats
-  export(format: 'json' | 'csv' | 'har'): string
+  export(format: 'json' | 'csv' | 'har', customLogs?: UnifiedLogEntry[]): string
   subscribe(callback: (entry: UnifiedLogEntry) => void): () => void
   getSize(): number
   isEmpty(): boolean

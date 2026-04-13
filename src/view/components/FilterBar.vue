@@ -33,6 +33,8 @@ const statusOptions = computed(() => {
   return [...codes].sort((a, b) => Number(a) - Number(b))
 })
 
+const hasRoutes = computed(() => props.logs.some(log => log.route !== undefined))
+
 const setType = (type: FilterOptions['type']) => {
   emit('update:filters', { ...props.filters, type })
 }
@@ -43,6 +45,10 @@ const setUrl = (e: Event) => {
 
 const setBody = (e: Event) => {
   emit('update:filters', { ...props.filters, body: (e.target as HTMLInputElement).value })
+}
+
+const setRoute = (e: Event) => {
+  emit('update:filters', { ...props.filters, route: (e.target as HTMLInputElement).value })
 }
 
 const setMethod = (value: string) => {
@@ -63,89 +69,98 @@ const toggleErrors = () => {
 }
 
 const resetFilters = () => {
-  emit('update:filters', { type: 'all', method: '', url: '', body: '', status: '', minDuration: null, hasError: false })
+  emit('update:filters', { type: 'all', method: '', url: '', body: '', route: '', status: '', minDuration: null, hasError: false })
 }
 </script>
 
 <template>
   <div class="filter-bar">
-    <!-- Type tabs -->
+
+    <!-- Левая колонка: переключатели протоколов -->
     <div class="filter-type-tabs">
-      <button
-        :class="['', filters.type === 'all' ? 'active' : '']"
-        @click="setType('all')"
-      >All</button>
-      <button
-        :class="[filters.type === 'http' ? 'active active-http' : '']"
-        @click="setType('http')"
-      >HTTP</button>
-      <button
-        :class="[filters.type === 'websocket' ? 'active active-ws' : '']"
-        @click="setType('websocket')"
-      >WS</button>
-      <button
-        :class="[filters.type === 'sse' ? 'active active-sse' : '']"
-        @click="setType('sse')"
-      >SSE</button>
+      <button :class="{ active: filters.type === 'all' }"            @click="setType('all')"      >All</button>
+      <button :class="{ active: filters.type === 'http',      'active-http': filters.type === 'http' }"      @click="setType('http')"      >HTTP</button>
+      <button :class="{ active: filters.type === 'websocket', 'active-ws':   filters.type === 'websocket' }" @click="setType('websocket')" >WS</button>
+      <button :class="{ active: filters.type === 'sse',       'active-sse':  filters.type === 'sse' }"       @click="setType('sse')"       >SSE</button>
     </div>
 
-    <!-- URL search -->
-    <div class="filter-search-wrap">
-      <svg class="filter-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <circle cx="11" cy="11" r="8"/>
-        <path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input
-        :value="filters.url"
-        type="text"
-        placeholder="Filter by URL..."
-        class="filter-input"
-        @input="setUrl"
-      />
+    <!-- Центральная колонка: два ряда фильтров -->
+    <div class="filter-center">
+      <!-- Ряд 1: поиск по URL + маршрут (если есть хотя бы один лог с route) -->
+      <div :class="['filter-search-wrap', { 'is-regex': filters.url.startsWith('regex:') }]">
+        <svg class="filter-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          :value="filters.url"
+          type="text"
+          placeholder="URL... or regex:pattern"
+          class="filter-input"
+          @input="setUrl"
+        />
+        <span v-if="filters.url.startsWith('regex:')" class="filter-regex-badge" title="Regex mode">RX</span>
+      </div>
+
+      <!-- Ряд 1б: поиск по маршруту (показывается только если роутер передан) -->
+      <div v-if="hasRoutes" :class="['filter-search-wrap', { 'is-regex': filters.route.startsWith('regex:') }]">
+        <svg class="filter-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/>
+        </svg>
+        <input
+          :value="filters.route"
+          type="text"
+          placeholder="Route... or regex:pattern"
+          class="filter-input"
+          @input="setRoute"
+        />
+        <span v-if="filters.route.startsWith('regex:')" class="filter-regex-badge" title="Regex mode">RX</span>
+      </div>
+
+      <!-- Ряд 2: детальные фильтры -->
+      <div class="filter-row-secondary">
+        <div :class="['filter-body-wrap', { 'is-regex': filters.body.startsWith('regex:') }]">
+          <input
+            :value="filters.body"
+            type="text"
+            placeholder="Body... or regex:pattern"
+            class="filter-input-plain filter-body-input"
+            @input="setBody"
+          />
+          <span v-if="filters.body.startsWith('regex:')" class="filter-regex-badge" title="Regex mode">RX</span>
+        </div>
+
+        <FilterSelect
+          :model-value="filters.method"
+          :options="methodOptions"
+          placeholder="Method"
+          @update:model-value="setMethod"
+        />
+
+        <FilterSelect
+          :model-value="filters.status"
+          :options="statusOptions"
+          placeholder="Status"
+          class="filter-select-sm"
+          @update:model-value="setStatus"
+        />
+
+        <input
+          :value="filters.minDuration ?? ''"
+          type="number"
+          placeholder="≥ ms"
+          class="filter-input-plain filter-input-sm"
+          @input="setMinDuration"
+        />
+
+        <button :class="['filter-toggle', { active: filters.hasError }]" @click="toggleErrors">
+          <span class="toggle-dot" />
+          Errors
+        </button>
+      </div>
     </div>
 
-    <!-- Body search -->
-    <input
-      :value="filters.body"
-      type="text"
-      placeholder="Body..."
-      class="filter-input-plain"
-      @input="setBody"
-    />
-
-    <!-- Method select -->
-    <FilterSelect
-      :model-value="filters.method"
-      :options="methodOptions"
-      placeholder="Method"
-      @update:model-value="setMethod"
-    />
-
-    <!-- Status select -->
-    <FilterSelect
-      :model-value="filters.status"
-      :options="statusOptions"
-      placeholder="Status"
-      class="filter-select-sm"
-      @update:model-value="setStatus"
-    />
-
-    <!-- Min duration -->
-    <input
-      :value="filters.minDuration ?? ''"
-      type="number"
-      placeholder="≥ ms"
-      class="filter-input-plain filter-input-sm"
-      @input="setMinDuration"
-    />
-
-    <!-- Errors toggle -->
-    <button :class="['filter-toggle', { active: filters.hasError }]" @click="toggleErrors">
-      <span class="toggle-dot" />
-      Errors
-    </button>
-
-    <!-- Reset -->
+    <!-- Правая колонка: кнопка Reset -->
     <button class="filter-reset" @click="resetFilters">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -153,5 +168,6 @@ const resetFilters = () => {
       </svg>
       Reset
     </button>
+
   </div>
 </template>

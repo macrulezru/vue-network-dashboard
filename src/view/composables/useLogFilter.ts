@@ -6,6 +6,7 @@ export interface FilterOptions {
   method: string
   url: string
   body: string
+  route: string
   status: string
   minDuration: number | null
   hasError: boolean
@@ -17,6 +18,7 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
     method: '',
     url: '',
     body: '',
+    route: '',
     status: '',
     minDuration: null,
     hasError: false
@@ -88,6 +90,7 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
       method: '',
       url: '',
       body: '',
+      route: '',
       status: '',
       minDuration: null,
       hasError: false
