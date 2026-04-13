@@ -68,8 +68,12 @@ const toggleErrors = () => {
   emit('update:filters', { ...props.filters, hasError: !props.filters.hasError })
 }
 
+const toggleWsMessages = () => {
+  emit('update:filters', { ...props.filters, wsMessagesOnly: !props.filters.wsMessagesOnly })
+}
+
 const resetFilters = () => {
-  emit('update:filters', { type: 'all', method: '', url: '', body: '', route: '', status: '', minDuration: null, hasError: false })
+  emit('update:filters', { type: 'all', method: '', url: '', body: '', route: '', status: '', minDuration: null, hasError: false, wsMessagesOnly: false })
 }
 </script>
 
@@ -156,6 +160,15 @@ const resetFilters = () => {
         <button :class="['filter-toggle', { active: filters.hasError }]" @click="toggleErrors">
           <span class="toggle-dot" />
           Errors
+        </button>
+
+        <button
+          v-if="filters.type === 'websocket'"
+          :class="['filter-toggle', { active: filters.wsMessagesOnly }]"
+          @click="toggleWsMessages"
+        >
+          <span class="toggle-dot" />
+          Messages only
         </button>
       </div>
     </div>

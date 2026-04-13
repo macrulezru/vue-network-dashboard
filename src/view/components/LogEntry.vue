@@ -9,6 +9,7 @@ const props = defineProps<{
   expanded?: boolean
   diffSelected?: boolean
   diffMode?: boolean
+  urlFilter?: string
 }>()
 
 const emit = defineEmits<{
@@ -99,6 +100,70 @@ const copyToClipboard = async (data: unknown) => {
   await navigator.clipboard.writeText(text)
 }
 
+// ── URL highlight ──────────────────────────────────────────────────────────────
+type TextPart = { text: string; match: boolean }
+
+const urlHighlightParts = computed((): TextPart[] => {
+  const f = props.urlFilter
+  if (!f) return []
+  let rx: RegExp
+  try {
+    rx = f.startsWith('regex:')
+      ? new RegExp(f.slice(6), 'gi')
+      : new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+  } catch { return [] }
+
+  const parts: TextPart[] = []
+  const url = props.log.url
+  let lastIndex = 0
+  let m: RegExpExecArray | null
+  while ((m = rx.exec(url)) !== null) {
+    if (m.index > lastIndex) parts.push({ text: url.slice(lastIndex, m.index), match: false })
+    parts.push({ text: m[0], match: true })
+    lastIndex = rx.lastIndex
+    if (m[0].length === 0) break
+  }
+  if (lastIndex < url.length) parts.push({ text: url.slice(lastIndex), match: false })
+  return parts.some(p => p.match) ? parts : []
+})
+
+// ── Copy as cURL ───────────────────────────────────────────────────────────────
+const SKIP_CURL_HEADERS = new Set(['host', 'content-length', 'transfer-encoding', 'connection', 'keep-alive'])
+
+const copyAsCurl = async () => {
+  const parts = [`curl -X ${props.log.method} '${props.log.url}'`]
+  for (const [k, v] of Object.entries(props.log.requestHeaders)) {
+    if (!SKIP_CURL_HEADERS.has(k.toLowerCase()))
+      parts.push(`  -H '${k}: ${v.replace(/'/g, "\\'")}'`)
+  }
+  if (props.log.request.body != null) {
+    const body = typeof props.log.request.body === 'string'
+      ? props.log.request.body
+      : JSON.stringify(props.log.request.body)
+    parts.push(`  -d '${body.replace(/'/g, "\\'")}'`)
+  }
+  await navigator.clipboard.writeText(parts.join(' \\\n'))
+}
+
+// ── Replay ─────────────────────────────────────────────────────────────────────
+const replayRequest = async () => {
+  const headers: Record<string, string> = {}
+  for (const [k, v] of Object.entries(props.log.requestHeaders)) {
+    if (!SKIP_CURL_HEADERS.has(k.toLowerCase())) headers[k] = v
+  }
+  try {
+    await fetch(props.log.url, {
+      method: props.log.method,
+      headers,
+      ...(props.log.request.body != null ? {
+        body: typeof props.log.request.body === 'string'
+          ? props.log.request.body
+          : JSON.stringify(props.log.request.body)
+      } : {})
+    })
+  } catch { /* captured by interceptor */ }
+}
+
 const isPending = computed(() => props.log.metadata?.pending === true)
 const isMocked  = computed(() => props.log.metadata?.mocked === true)
 
@@ -131,7 +196,10 @@ const toggleDiff = (e: MouseEvent) => {
 
       <!-- URL -->
       <span class="log-url" :title="log.url">
-        {{ log.url }}
+        <template v-if="urlHighlightParts.length">
+          <span v-for="(part, i) in urlHighlightParts" :key="i" :class="{ 'url-match': part.match }">{{ part.text }}</span>
+        </template>
+        <template v-else>{{ log.url }}</template>
         <span v-if="isMocked" class="mocked-badge">mock</span>
       </span>
 
@@ -186,6 +254,21 @@ const toggleDiff = (e: MouseEvent) => {
         <button :class="{ active: detailTab === 'request' }"  @click.stop="detailTab = 'request'">Request</button>
         <button :class="{ active: detailTab === 'response' }" @click.stop="detailTab = 'response'">Response</button>
         <button :class="{ active: detailTab === 'meta' }"     @click.stop="detailTab = 'meta'">Meta</button>
+        <div v-if="log.type === 'http'" class="details-actions">
+          <button class="copy-btn" title="Copy as cURL" @click.stop="copyAsCurl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+            cURL
+          </button>
+          <button class="copy-btn" title="Replay request" @click.stop="replayRequest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+            </svg>
+            Replay
+          </button>
+        </div>
       </div>
 
       <!-- ── REQUEST tab ── -->

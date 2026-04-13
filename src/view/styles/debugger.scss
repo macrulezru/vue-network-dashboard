@@ -815,6 +815,7 @@
 
 .details-tabs {
   display: flex;
+  align-items: center;
   gap: 2px;
   border-bottom: 1px solid variables.$border-color;
   margin-bottom: 2px;
@@ -835,6 +836,14 @@
       border-bottom-color: variables.$accent-blue;
     }
   }
+}
+
+.details-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding-right: 2px;
 }
 
 .details-pane {
@@ -960,6 +969,55 @@
   }
 }
 
+// ── URL search highlight ───────────────────────────────────────────────────────
+.url-match {
+  background: rgba(210, 153, 34, 0.22);
+  color: #e3b341;
+  border-radius: 2px;
+}
+
+// ── Import banner ──────────────────────────────────────────────────────────────
+.import-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: variables.$accent-blue-muted;
+  border-bottom: 1px solid rgba(variables.$accent-blue, 0.25);
+  font-size: variables.$font-size-sm;
+  color: variables.$accent-blue;
+  flex-shrink: 0;
+
+  svg { width: 12px; height: 12px; flex-shrink: 0; stroke-width: 2.5; }
+
+  .import-source {
+    font-family: variables.$font-family-mono;
+    font-size: 11px;
+    opacity: 0.8;
+  }
+
+  .import-count {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  .import-clear {
+    @include mixins.button-reset;
+    margin-left: auto;
+    font-size: 16px;
+    color: variables.$accent-blue;
+    line-height: 1;
+    opacity: 0.7;
+    &:hover { opacity: 1; }
+  }
+}
+
+// ── Virtual scroll sentinel ────────────────────────────────────────────────────
+.load-sentinel {
+  height: 1px;
+  flex-shrink: 0;
+}
+
 .error-banner {
   display: flex;
   align-items: flex-start;
@@ -1073,6 +1131,9 @@
   gap: variables.$spacing-sm;
 
   h4 {
+    display: flex;
+    align-items: baseline;
+    gap: variables.$spacing-sm;
     font-size: variables.$font-size-md;
     font-weight: 600;
     margin: 0;
@@ -1080,6 +1141,37 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
+}
+
+.sparkline-peak {
+  font-size: variables.$font-size-xs;
+  font-weight: 400;
+  color: variables.$text-muted;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: variables.$font-family-mono;
+}
+
+.sparkline-wrap {
+  background: variables.$bg-elevated;
+  border: 1px solid variables.$border-color;
+  border-radius: variables.$border-radius-md;
+  padding: 6px 4px;
+  overflow: hidden;
+}
+
+.sparkline-svg {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+.sparkline-line {
+  stroke: variables.$accent-blue;
+  stroke-width: 1;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .dist-list {

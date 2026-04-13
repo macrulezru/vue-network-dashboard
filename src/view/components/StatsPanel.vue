@@ -1,10 +1,70 @@
 <script setup lang="ts">
 import '../styles/debugger.scss'
 
-import { computed } from 'vue'
-import type { NetworkStats } from '../../core/types'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import type { NetworkStats, UnifiedLogEntry } from '../../core/types'
 
-const props = defineProps<{ stats: NetworkStats }>()
+const props = defineProps<{
+  stats: NetworkStats
+  logs: UnifiedLogEntry[]
+}>()
+
+// ── Sparkline ──────────────────────────────────────────────────────────────────
+const SPARKLINE_H  = 48
+const BUCKET_MS    = 5_000  // 5-second buckets
+const MAX_BUCKETS  = 40     // last ~3.3 minutes
+
+const sparklineWrapRef  = ref<HTMLElement | null>(null)
+const sparklineWidth    = ref(320)
+
+let sparklineObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (!sparklineWrapRef.value) return
+  sparklineObserver = new ResizeObserver((entries) => {
+    const w = entries[0]?.contentRect.width
+    if (w && w > 0) sparklineWidth.value = Math.round(w)
+  })
+  sparklineObserver.observe(sparklineWrapRef.value)
+  const initial = sparklineWrapRef.value.getBoundingClientRect().width
+  if (initial > 0) sparklineWidth.value = Math.round(initial)
+})
+
+onUnmounted(() => {
+  sparklineObserver?.disconnect()
+})
+
+// Бакеты зависят только от logs — Date.now() вызывается только здесь
+const bucketCounts = computed(() => {
+  const now = Date.now()
+  const from = now - MAX_BUCKETS * BUCKET_MS
+  const counts = new Array<number>(MAX_BUCKETS).fill(0)
+  for (const log of props.logs) {
+    const age = log.startTime - from
+    if (age < 0) continue
+    const idx = Math.min(Math.floor(age / BUCKET_MS), MAX_BUCKETS - 1)
+    counts[idx]++
+  }
+  return counts
+})
+
+// Координаты зависят от бакетов + ширины; при ресайзе Date.now() не вызывается
+const sparkline = computed(() => {
+  const counts = bucketCounts.value
+  const peak = Math.max(...counts, 1)
+  const pad = 4
+  const w = sparklineWidth.value
+  const h = SPARKLINE_H
+  const step = (w - pad * 2) / (MAX_BUCKETS - 1)
+
+  const points = counts.map((c, i) => {
+    const x = pad + i * step
+    const y = h - pad - ((c / peak) * (h - pad * 2))
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+
+  return { points, peak, w, h }
+})
 
 const errorRate = computed(() => {
   if (props.stats.totalRequests === 0) return '0'
@@ -48,6 +108,26 @@ const truncateUrl = (url: string, maxLength: number): string =>
 
 <template>
   <div class="stats-panel">
+
+    <!-- Traffic sparkline -->
+    <div class="stats-section">
+      <h4>
+        Traffic
+        <span class="sparkline-peak">peak {{ sparkline.peak }} req / 5s</span>
+      </h4>
+      <div ref="sparklineWrapRef" class="sparkline-wrap">
+        <svg
+          :viewBox="`0 0 ${sparkline.w} ${sparkline.h}`"
+          class="sparkline-svg"
+        >
+          <polyline
+            :points="sparkline.points"
+            fill="none"
+            class="sparkline-line"
+          />
+        </svg>
+      </div>
+    </div>
 
     <!-- Overview cards (3 × 2) -->
     <div class="stats-grid">
