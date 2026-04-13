@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import '../styles/debugger.scss'
 
-import { ref, computed, inject, onMounted, onUnmounted, type CSSProperties } from 'vue'
+import { ref, computed, watch, inject, onMounted, onUnmounted, type CSSProperties } from 'vue'
 import { useNetworkDashboard } from '../../plugins/vuePlugin'
 import type { NetworkDashboardOptions, UnifiedLogEntry } from '../../core/types'
 import LogEntry from './LogEntry.vue'
@@ -45,6 +45,13 @@ const resolvedModifiers = computed(() => ({
 const dashboard = useNetworkDashboard()
 const logs = dashboard.logs
 
+// ── HAR import ─────────────────────────────────────────────────────────────────
+const importedLogs  = ref<UnifiedLogEntry[] | null>(null)
+const importFileName = ref('')
+const fileInputRef  = ref<HTMLInputElement | null>(null)
+
+const sourceLogs = computed(() => importedLogs.value ?? logs.value)
+
 const mocks = dashboard.mocks
 
 const activeMocksCount = computed(() => 
@@ -60,8 +67,30 @@ const filters = ref({
   route: '',
   status: '',
   minDuration: null as number | null,
-  hasError: false
+  hasError: false,
+  wsMessagesOnly: false,
 })
+
+// activeFilters — то, что реально используется в filteredLogs.
+// Нетекстовые поля обновляются сразу, текстовые — с дебаунсом 180ms.
+const activeFilters = ref({ ...filters.value })
+let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(filters, (val) => {
+  activeFilters.value = {
+    ...activeFilters.value,
+    type: val.type,
+    method: val.method,
+    status: val.status,
+    minDuration: val.minDuration,
+    hasError: val.hasError,
+    wsMessagesOnly: val.wsMessagesOnly,
+  }
+  if (filterDebounceTimer) clearTimeout(filterDebounceTimer)
+  filterDebounceTimer = setTimeout(() => {
+    activeFilters.value = { ...activeFilters.value, url: val.url, body: val.body, route: val.route }
+  }, 180)
+}, { deep: true })
 
 // ── Regex search helper ────────────────────────────────────────────────────────
 const parseRegexFilter = (pattern: string): RegExp | null => {
@@ -77,41 +106,66 @@ const matchText = (text: string, filter: string): boolean => {
 }
 
 const filteredLogs = computed(() => {
-  let result = [...logs.value]
+  let result = [...sourceLogs.value]
+  const f = activeFilters.value
 
-  if (filters.value.type !== 'all')
-    result = result.filter(log => log.type === filters.value.type)
+  if (f.type !== 'all')
+    result = result.filter(log => log.type === f.type)
 
-  if (filters.value.method)
-    result = result.filter(log => log.method.toUpperCase() === filters.value.method.toUpperCase())
+  if (f.method)
+    result = result.filter(log => log.method.toUpperCase() === f.method.toUpperCase())
 
-  if (filters.value.url)
-    result = result.filter(log => matchText(log.url, filters.value.url))
+  if (f.url)
+    result = result.filter(log => matchText(log.url, f.url))
 
-  if (filters.value.body) {
+  if (f.body) {
     result = result.filter(log => {
       const req = typeof log.request.body === 'string' ? log.request.body : JSON.stringify(log.request.body ?? '')
       const res = typeof log.response.body === 'string' ? log.response.body : JSON.stringify(log.response.body ?? '')
-      return matchText(req, filters.value.body) || matchText(res, filters.value.body)
+      return matchText(req, f.body) || matchText(res, f.body)
     })
   }
 
-  if (filters.value.route)
-    result = result.filter(log => log.route !== undefined && matchText(log.route, filters.value.route))
+  if (f.route)
+    result = result.filter(log => log.route !== undefined && matchText(log.route, f.route))
 
-  if (filters.value.status)
+  if (f.status)
     result = result.filter(log => {
       if (log.type !== 'http') return false
-      return log.http?.status?.toString() === filters.value.status
+      return log.http?.status?.toString() === f.status
     })
 
-  if (filters.value.minDuration !== null)
-    result = result.filter(log => log.duration !== null && log.duration >= filters.value.minDuration!)
+  if (f.minDuration !== null)
+    result = result.filter(log => log.duration !== null && log.duration >= f.minDuration!)
 
-  if (filters.value.hasError)
+  if (f.hasError)
     result = result.filter(log => log.error.occurred)
 
+  if (f.wsMessagesOnly && f.type === 'websocket')
+    result = result.filter(log => log.websocket?.eventType === 'message')
+
   return result
+})
+
+// ── Filter persistence ─────────────────────────────────────────────────────────
+const FILTER_STORAGE_KEY = 'vue-network-dashboard:filters'
+
+watch(activeFilters, (val) => {
+  try { sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(val)) } catch {}
+}, { deep: true })
+
+// ── Virtual scroll ─────────────────────────────────────────────────────────────
+const displayCount  = ref(100)
+const sentinelRef   = ref<HTMLElement | null>(null)
+let scrollObserver: IntersectionObserver | null = null as IntersectionObserver | null
+
+const displayedLogs = computed(() => filteredLogs.value.slice(0, displayCount.value))
+
+watch(filteredLogs, () => { displayCount.value = 100 })
+
+watch(sentinelRef, (el, prev) => {
+  if (prev) scrollObserver?.unobserve(prev)
+  if (el)   scrollObserver?.observe(el)
 })
 
 // ── Grouping ───────────────────────────────────────────────────────────────────
@@ -339,7 +393,10 @@ const startResize = (dir: string, e: MouseEvent) => {
 
 // ── Actions ────────────────────────────────────────────────────────────────────
 const resetFilters = () => {
-  filters.value = { type: 'all', method: '', url: '', body: '', route: '', status: '', minDuration: null, hasError: false }
+  if (filterDebounceTimer) clearTimeout(filterDebounceTimer)
+  const blank = { type: 'all' as const, method: '', url: '', body: '', route: '', status: '', minDuration: null, hasError: false, wsMessagesOnly: false }
+  filters.value       = blank
+  activeFilters.value = blank
 }
 
 const downloadFile = (content: string, fileName: string, mimeType: string) => {
@@ -352,6 +409,84 @@ const downloadFile = (content: string, fileName: string, mimeType: string) => {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+// ── HAR Import ────────────────────────────────────────────────────────────────
+const parseHAR = (har: any): UnifiedLogEntry[] => {
+  const toMap = (arr: any[]): Record<string, string> => {
+    const m: Record<string, string> = {}
+    for (const h of arr ?? []) m[String(h.name).toLowerCase()] = String(h.value)
+    return m
+  }
+  const tryJSON = (text: string | undefined): any => {
+    if (!text) return null
+    try { return JSON.parse(text) } catch { return text }
+  }
+  return (har?.log?.entries ?? []).map((e: any): UnifiedLogEntry => {
+    const startTime = new Date(e.startedDateTime).getTime()
+    const duration  = Math.round(e.time ?? 0)
+    const status: number = e.response?.status ?? 0
+    const isError = status === 0 || status >= 400
+    return {
+      id: Math.random().toString(36).slice(2),
+      type: 'http',
+      startTime,
+      endTime: startTime + duration,
+      duration,
+      url:    e.request?.url    ?? '',
+      method: e.request?.method ?? 'GET',
+      http: { status, statusText: e.response?.statusText ?? '', protocol: e.response?.httpVersion ?? 'HTTP/1.1' },
+      websocket: null,
+      sse: null,
+      requestHeaders:  toMap(e.request?.headers),
+      responseHeaders: toMap(e.response?.headers),
+      request: {
+        body:     tryJSON(e.request?.postData?.text),
+        bodyRaw:  e.request?.postData?.text  ?? null,
+        bodySize: e.request?.bodySize        ?? null,
+        bodyType: e.request?.postData?.mimeType ?? null,
+      },
+      response: {
+        body:     tryJSON(e.response?.content?.text),
+        bodyRaw:  e.response?.content?.text  ?? null,
+        bodySize: e.response?.content?.size  ?? null,
+        bodyType: e.response?.content?.mimeType ?? null,
+      },
+      error: {
+        occurred: isError,
+        message:  isError ? `HTTP ${status} ${e.response?.statusText ?? ''}`.trim() : null,
+        name: null, stack: null,
+      },
+      metadata: {
+        clientType: 'fetch', redirected: false, retryCount: 0,
+        timestamp: e.startedDateTime ?? new Date(startTime).toISOString(),
+      },
+    }
+  })
+}
+
+const triggerImport = () => fileInputRef.value?.click()
+
+const onFileSelected = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const parsed = JSON.parse(ev.target?.result as string)
+      importedLogs.value  = parseHAR(parsed)
+      importFileName.value = file.name
+    } catch {
+      alert('Failed to parse HAR file')
+    }
+  }
+  reader.readAsText(file)
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+const clearImport = () => {
+  importedLogs.value   = null
+  importFileName.value = ''
 }
 
 const handleExport = ({ format, logs: exportLogs }: { format: 'json' | 'csv' | 'har'; logs: UnifiedLogEntry[] }) => {
@@ -412,12 +547,28 @@ const formatBytes = (bytes: number): string => {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   document.addEventListener('click', handleClickOutside)
+  scrollObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && displayCount.value < filteredLogs.value.length)
+      displayCount.value = Math.min(displayCount.value + 50, filteredLogs.value.length)
+  })
+  // Restore persisted filters
+  try {
+    const saved = sessionStorage.getItem(FILTER_STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      const restored = { ...filters.value, ...parsed }
+      filters.value       = restored
+      activeFilters.value = restored
+    }
+  } catch {}
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('click', handleClickOutside)
   if (isFullscreen.value) document.body.style.overflow = ''
+  if (filterDebounceTimer) clearTimeout(filterDebounceTimer)
+  scrollObserver?.disconnect()
 })
 
 defineExpose({
@@ -495,6 +646,23 @@ defineExpose({
 
             <div class="header-divider" />
 
+            <!-- Import HAR -->
+            <button class="btn-icon-label" title="Import HAR file" @click.stop="triggerImport">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Import
+            </button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".har,.json"
+              style="display:none"
+              @change="onFileSelected"
+            />
+
             <!-- Export -->
             <button class="btn-icon-label" title="Export logs" @click.stop="showExportModal = true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -556,7 +724,20 @@ defineExpose({
         </div>
 
         <!-- Filter Bar -->
-        <FilterBar v-model:filters="filters" :logs="logs" />
+        <FilterBar v-model:filters="filters" :logs="sourceLogs" />
+
+        <!-- Import banner -->
+        <div v-if="importedLogs" class="import-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Imported session
+          <span class="import-source">{{ importFileName }}</span>
+          <span class="import-count">{{ importedLogs.length }} entries</span>
+          <button class="import-clear" @click="clearImport">&times;</button>
+        </div>
 
         <!-- Tabs -->
         <div class="debugger-tabs">
@@ -626,6 +807,7 @@ defineExpose({
                     :expanded="expandedLogs.has(log.id)"
                     :diff-selected="diffSet.has(log.id)"
                     :diff-mode="diffMode"
+                    :url-filter="activeFilters.url"
                     @toggle-details="toggleDetails"
                     @toggle-diff="toggleDiff"
                   />
@@ -633,23 +815,29 @@ defineExpose({
               </div>
             </div>
 
-            <!-- Flat view -->
+            <!-- Flat view (виртуальный скролл) -->
             <div v-else class="logs-list">
               <LogEntry
-                v-for="log in filteredLogs"
+                v-for="log in displayedLogs"
                 :key="log.id"
                 :log="log"
                 :expanded="expandedLogs.has(log.id)"
                 :diff-selected="diffSet.has(log.id)"
                 :diff-mode="diffMode"
+                :url-filter="activeFilters.url"
                 @toggle-details="toggleDetails"
                 @toggle-diff="toggleDiff"
+              />
+              <div
+                v-if="displayCount < filteredLogs.length"
+                ref="sentinelRef"
+                class="load-sentinel"
               />
             </div>
           </div>
 
           <!-- ── Stats ── -->
-          <StatsPanel v-else-if="activeTab === 'stats'" :stats="stats" />
+          <StatsPanel v-else-if="activeTab === 'stats'" :stats="stats" :logs="sourceLogs" />
 
           <!-- ── Timeline ── -->
           <NetworkTimeline v-else-if="activeTab === 'timeline'" :logs="filteredLogs" />

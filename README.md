@@ -24,6 +24,14 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
   - [Diff View](#diff-view)
   - [Waterfall Timeline](#waterfall-timeline)
   - [Grouping](#grouping)
+  - [Virtual Scroll](#virtual-scroll)
+  - [URL Highlight](#url-highlight)
+  - [Copy as cURL](#copy-as-curl)
+  - [Replay Request](#replay-request)
+  - [HAR Import](#har-import)
+  - [Filter Persistence](#filter-persistence)
+  - [WebSocket Message Filter](#websocket-message-filter)
+  - [Traffic Sparkline](#traffic-sparkline)
 - [Configuration Reference](#configuration-reference)
 - [Log Entry Structure](#log-entry-structure)
 - [Instance API](#instance-api)
@@ -62,8 +70,17 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 | **Grouping** | Collapse repeated requests to the same endpoint into a single row with a count badge |
 | **Body Search** | Filter log entries by content of request or response body |
 | **Regex Search** | Prefix any URL or body filter with `regex:` to match by regular expression |
+| **URL Highlight** | Matched URL fragment is highlighted inline in the log list when an active URL filter is set |
+| **Debounced Filters** | Text filters (URL, Body, Route) update with a 180 ms debounce; method/status/toggles apply instantly |
+| **Filter Persistence** | Active filters are saved to `sessionStorage` and restored automatically on next page load |
 | **Route Context** | Attach the current Vue Router route to every log entry; filter by route in the UI |
 | **Filtered Export** | Export modal with format selector (JSON / CSV / HAR), protocol checkboxes, status checkboxes, and dual time-range slider |
+| **HAR Import** | Load any `.har` file into the debugger to inspect a recorded session; live traffic is paused while a file is active |
+| **Copy as cURL** | One-click copy of any HTTP request as a ready-to-run `curl` command (with headers and body) |
+| **Replay** | Re-send any HTTP request from the detail panel; the response is captured as a new log entry |
+| **Virtual Scroll** | Log list renders at most 100 rows; additional rows load incrementally on scroll via `IntersectionObserver` |
+| **WebSocket Message Filter** | When the WS type filter is active, a toggle hides connection/open/close events and shows only `message` entries |
+| **Traffic Sparkline** | Statistics tab shows a live SVG sparkline of request volume over time (5-second buckets, last ~3 min) |
 | **Fullscreen Mode** | Expand the debugger panel to fill the entire viewport with a single click |
 | **Built-in Debugger UI** | Draggable, resizable panel with filters, 3-tab detail view, stats, timeline, mock editor, and export |
 | **Nuxt 3 Module** | First-class Nuxt integration with auto-registration and `useNetworkDashboard()` auto-import |
@@ -321,9 +338,14 @@ import { NetworkDebugger } from 'vue-network-dashboard'
 
 The panel includes:
 
-- **Filter bar** — filter by type (HTTP / WS / SSE), URL, body (both support `regex:pattern`), HTTP method, status code, route, minimum duration, and errors-only toggle
-- **Log list** — scrollable, colour-coded entries with expandable detail view (Request / Response / Meta tabs); Meta tab shows the Vue Router route when available
-- **Statistics panel** — request counts, error rate, average duration, data transfer, method distribution, status distribution, slowest and largest requests
+- **Filter bar** — filter by type (HTTP / WS / SSE), URL, body (both support `regex:pattern`), HTTP method, status code, route, minimum duration, errors-only toggle, and (when WS type is active) a messages-only toggle
+- **URL highlight** — active URL filter highlights the matching fragment directly in the log list
+- **Filter persistence** — filters are saved to `sessionStorage` and restored on next load
+- **Log list** — virtual scroll (100 rows at a time); colour-coded entries with expandable detail view (Request / Response / Meta tabs); Meta tab shows the Vue Router route when available
+- **Copy as cURL** — one-click copy of any HTTP request as a `curl` command from the detail panel
+- **Replay** — re-send any HTTP request from the detail panel; the response appears as a new log entry
+- **Statistics panel** — live traffic sparkline, request counts, error rate, average duration, data transfer, method/status distribution, slowest and largest requests
+- **HAR import** — load a `.har` file to browse a recorded session; a banner indicates import mode with a dismiss button to return to live traffic
 - **Export modal** — format selector (JSON / CSV / HAR), filter by protocol and status codes, dual time-range slider showing `N / M logs` count before confirming
 - **Fullscreen mode** — expand to full viewport; page scroll is blocked while active; exit with the button or `Escape`
 - **Pin** — pin the panel so it stays open when clicking outside
@@ -377,6 +399,45 @@ Switch to the **Timeline** tab to see all completed requests as horizontal bars 
 ### Grouping
 
 Toggle the **Group** button in the header to collapse all requests to the same URL+method into a single row showing the total count. Expand a group to see individual entries inside it.
+
+### Virtual Scroll
+
+The log list renders at most 100 rows at a time. As you scroll toward the bottom, the next 50 rows load automatically via an `IntersectionObserver` sentinel element. Switching filters or clearing logs resets the counter back to 100. This keeps DOM size bounded even with thousands of requests captured.
+
+### URL Highlight
+
+While a URL filter is active, the matched substring (or regex capture) is highlighted directly in the log list row using an amber accent. Regex mode (`regex:pattern`) is also supported.
+
+### Copy as cURL
+
+Open any HTTP request's detail view and click **cURL** to copy the full request as a `curl` command to the clipboard. The command includes the method, all non-redundant headers, and the request body. Common internal headers (`host`, `content-length`, `transfer-encoding`, `connection`, `keep-alive`) are omitted automatically.
+
+### Replay Request
+
+Click **Replay** in an HTTP request's detail view to re-send the request with the original method, headers, and body. The response is captured by the interceptor and appears as a new log entry, so you can compare it with the original side-by-side using Diff view.
+
+### HAR Import
+
+Click **Import** in the panel header to load a `.har` file. The imported entries are displayed using the same filters and detail view as live traffic. A banner at the top of the panel shows the file name and entry count; click **×** to dismiss and return to live mode.
+
+```
+┌─────────────────────────────────────────┐
+│  ↑ Imported session  my-session.har     │
+│    247 entries                      ×   │
+└─────────────────────────────────────────┘
+```
+
+### Filter Persistence
+
+The active filter state (URL, body, method, status, type, duration threshold, and toggles) is automatically saved to `sessionStorage` under the key `vue-network-dashboard:filters`. On the next page load the filters are restored without any configuration required. Clicking **Reset** clears both the UI state and the stored value.
+
+### WebSocket Message Filter
+
+When the **WS** type tab is active, a **Messages only** toggle appears in the filter bar. Enabling it hides `connection`, `open`, `error`, and `close` events and shows only `message` entries — useful for high-frequency connections where lifecycle noise would otherwise bury the actual data frames.
+
+### Traffic Sparkline
+
+The **Statistics** tab displays a live SVG sparkline at the top of the panel showing request volume over time. Requests are bucketed into 5-second intervals across the last ~3 minutes (40 buckets). The chart redraws automatically when the panel is resized or switched to fullscreen mode. The peak value (requests per bucket) is shown in the section header.
 
 ### Component Props
 

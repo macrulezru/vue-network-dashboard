@@ -10,6 +10,7 @@ export interface FilterOptions {
   status: string
   minDuration: number | null
   hasError: boolean
+  wsMessagesOnly: boolean
 }
 
 export const useLogFilter = (logs: UnifiedLogEntry[]) => {
@@ -21,7 +22,8 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
     route: '',
     status: '',
     minDuration: null,
-    hasError: false
+    hasError: false,
+    wsMessagesOnly: false,
   })
   
   const filteredLogs = computed(() => {
@@ -93,7 +95,8 @@ export const useLogFilter = (logs: UnifiedLogEntry[]) => {
       route: '',
       status: '',
       minDuration: null,
-      hasError: false
+      hasError: false,
+      wsMessagesOnly: false,
     }
   }
   
