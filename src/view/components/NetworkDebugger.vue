@@ -10,6 +10,7 @@ import StatsPanel from './StatsPanel.vue'
 import MockPanel from './MockPanel.vue'
 import NetworkTimeline from './NetworkTimeline.vue'
 import DiffPanel from './DiffPanel.vue'
+import ExportModal from './ExportModal.vue'
 
 export interface NetworkDebuggerProps {
   defaultVisible?: boolean
@@ -56,10 +57,24 @@ const filters = ref({
   method: '',
   url: '',
   body: '',
+  route: '',
   status: '',
   minDuration: null as number | null,
   hasError: false
 })
+
+// ── Regex search helper ────────────────────────────────────────────────────────
+const parseRegexFilter = (pattern: string): RegExp | null => {
+  try { return new RegExp(pattern, 'i') } catch { return null }
+}
+
+const matchText = (text: string, filter: string): boolean => {
+  if (filter.startsWith('regex:')) {
+    const rx = parseRegexFilter(filter.slice(6))
+    return rx ? rx.test(text) : false
+  }
+  return text.toLowerCase().includes(filter.toLowerCase())
+}
 
 const filteredLogs = computed(() => {
   let result = [...logs.value]
@@ -71,16 +86,18 @@ const filteredLogs = computed(() => {
     result = result.filter(log => log.method.toUpperCase() === filters.value.method.toUpperCase())
 
   if (filters.value.url)
-    result = result.filter(log => log.url.toLowerCase().includes(filters.value.url.toLowerCase()))
+    result = result.filter(log => matchText(log.url, filters.value.url))
 
   if (filters.value.body) {
-    const term = filters.value.body.toLowerCase()
     result = result.filter(log => {
       const req = typeof log.request.body === 'string' ? log.request.body : JSON.stringify(log.request.body ?? '')
       const res = typeof log.response.body === 'string' ? log.response.body : JSON.stringify(log.response.body ?? '')
-      return req.toLowerCase().includes(term) || res.toLowerCase().includes(term)
+      return matchText(req, filters.value.body) || matchText(res, filters.value.body)
     })
   }
+
+  if (filters.value.route)
+    result = result.filter(log => log.route !== undefined && matchText(log.route, filters.value.route))
 
   if (filters.value.status)
     result = result.filter(log => {
@@ -128,7 +145,7 @@ const isVisible = ref(props.defaultVisible)
 const isPinned = ref(props.defaultPinned)
 const activeTab = ref<'logs' | 'stats' | 'timeline' | 'mocks'>('logs')
 const expandedLogs = ref<Set<string>>(new Set())
-const showExportMenu = ref(false)
+const showExportModal = ref(false)
 
 const hasErrors = computed(() => dashboard.totalErrors.value > 0)
 const pendingCount = computed(() => logs.value.filter(l => l.metadata?.pending).length)
@@ -174,23 +191,61 @@ const isDragging = ref(false)
 const dragPosition = ref<{ x: number; y: number } | null>(null)
 let dragOffset = { x: 0, y: 0 }
 
-const panelStyle = computed((): CSSProperties => {
-  if (!dragPosition.value) return {}
-  return {
-    left:   `${dragPosition.value.x}px`,
-    top:    `${dragPosition.value.y}px`,
-    bottom: 'auto',
-    right:  'auto',
+// ── Resize ─────────────────────────────────────────────────────────────────────
+const MIN_W = 750
+const MIN_H = 420
+const panelSize = ref({ w: 960, h: 620 })
+let resizeDir = ''
+let resizeStart = { x: 0, y: 0, w: 0, h: 0, panelX: 0, panelY: 0 }
+
+// ── Fullscreen ─────────────────────────────────────────────────────────────────
+const isFullscreen = ref(false)
+let savedSize = { w: 960, h: 620 }
+let savedPos: { x: number; y: number } | null = null
+
+const toggleFullscreen = () => {
+  if (isFullscreen.value) {
+    panelSize.value = { ...savedSize }
+    dragPosition.value = savedPos ? { ...savedPos } : null
+    isFullscreen.value = false
+    document.body.style.overflow = ''
+  } else {
+    savedSize = { ...panelSize.value }
+    savedPos = dragPosition.value ? { ...dragPosition.value } : null
+    isFullscreen.value = true
+    document.body.style.overflow = 'hidden'
   }
+}
+
+const panelStyle = computed((): CSSProperties => {
+  if (isFullscreen.value) {
+    return { width: '100dvw', height: '100dvh', left: '0', top: '0', bottom: 'auto', right: 'auto' }
+  }
+  const style: CSSProperties = {
+    width:  `${panelSize.value.w}px`,
+    height: `${panelSize.value.h}px`,
+  }
+  if (dragPosition.value) {
+    style.left   = `${dragPosition.value.x}px`
+    style.top    = `${dragPosition.value.y}px`
+    style.bottom = 'auto'
+    style.right  = 'auto'
+  }
+  return style
 })
+
+const ensureDragPosition = () => {
+  if (!dragPosition.value) {
+    const rect = containerRef.value?.getBoundingClientRect()
+    if (rect) dragPosition.value = { x: rect.left, y: rect.top }
+  }
+}
 
 const onDragMove = (e: MouseEvent) => {
   if (!isDragging.value) return
-  const panelW = containerRef.value?.offsetWidth  ?? 960
-  const panelH = containerRef.value?.offsetHeight ?? 620
   dragPosition.value = {
-    x: Math.max(0, Math.min(window.innerWidth  - panelW, e.clientX - dragOffset.x)),
-    y: Math.max(0, Math.min(window.innerHeight - panelH, e.clientY - dragOffset.y)),
+    x: Math.max(0, Math.min(window.innerWidth  - panelSize.value.w, e.clientX - dragOffset.x)),
+    y: Math.max(0, Math.min(window.innerHeight - panelSize.value.h, e.clientY - dragOffset.y)),
   }
 }
 
@@ -201,14 +256,11 @@ const onDragEnd = () => {
 }
 
 const startDrag = (e: MouseEvent) => {
+  if (isFullscreen.value) return
   if ((e.target as HTMLElement).closest('button, .export-dropdown')) return
 
-  const rect = containerRef.value?.getBoundingClientRect()
-  if (!rect) return
-
-  if (!dragPosition.value) {
-    dragPosition.value = { x: rect.left, y: rect.top }
-  }
+  ensureDragPosition()
+  if (!dragPosition.value) return
 
   dragOffset = { x: e.clientX - dragPosition.value.x, y: e.clientY - dragPosition.value.y }
   isDragging.value = true
@@ -218,9 +270,76 @@ const startDrag = (e: MouseEvent) => {
   e.preventDefault()
 }
 
+const onResizeMove = (e: MouseEvent) => {
+  const dx = e.clientX - resizeStart.x
+  const dy = e.clientY - resizeStart.y
+
+  let newW = resizeStart.w
+  let newH = resizeStart.h
+  let newX = resizeStart.panelX
+  let newY = resizeStart.panelY
+
+  if (resizeDir.includes('e')) {
+    newW = Math.max(MIN_W, Math.min(window.innerWidth - resizeStart.panelX, resizeStart.w + dx))
+  }
+  if (resizeDir.includes('w')) {
+    newW = Math.max(MIN_W, resizeStart.w - dx)
+    newX = resizeStart.panelX + (resizeStart.w - newW)
+  }
+  if (resizeDir.includes('s')) {
+    newH = Math.max(MIN_H, Math.min(window.innerHeight - resizeStart.panelY, resizeStart.h + dy))
+  }
+  if (resizeDir.includes('n')) {
+    newH = Math.max(MIN_H, resizeStart.h - dy)
+    newY = resizeStart.panelY + (resizeStart.h - newH)
+  }
+
+  panelSize.value = { w: newW, h: newH }
+  if (resizeDir.includes('w') || resizeDir.includes('n')) {
+    dragPosition.value = { x: newX, y: newY }
+  }
+}
+
+const onResizeEnd = () => {
+  resizeDir = ''
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup',   onResizeEnd)
+}
+
+const startResize = (dir: string, e: MouseEvent) => {
+  ensureDragPosition()
+  if (!dragPosition.value) return
+
+  resizeDir = dir
+  resizeStart = {
+    x: e.clientX,
+    y: e.clientY,
+    w: panelSize.value.w,
+    h: panelSize.value.h,
+    panelX: dragPosition.value.x,
+    panelY: dragPosition.value.y,
+  }
+
+  const cursorMap: Record<string, string> = {
+    n: 'ns-resize', s: 'ns-resize',
+    e: 'ew-resize', w: 'ew-resize',
+    ne: 'nesw-resize', sw: 'nesw-resize',
+    nw: 'nwse-resize', se: 'nwse-resize',
+  }
+  document.body.style.cursor = cursorMap[dir] ?? 'default'
+  document.body.style.userSelect = 'none'
+
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup',   onResizeEnd)
+  e.preventDefault()
+  e.stopPropagation()
+}
+
 // ── Actions ────────────────────────────────────────────────────────────────────
 const resetFilters = () => {
-  filters.value = { type: 'all', method: '', url: '', body: '', status: '', minDuration: null, hasError: false }
+  filters.value = { type: 'all', method: '', url: '', body: '', route: '', status: '', minDuration: null, hasError: false }
 }
 
 const downloadFile = (content: string, fileName: string, mimeType: string) => {
@@ -235,15 +354,19 @@ const downloadFile = (content: string, fileName: string, mimeType: string) => {
   URL.revokeObjectURL(url)
 }
 
-const handleExport = (format: 'json' | 'csv' | 'har') => {
-  const data = dashboard.export(format)
+const handleExport = ({ format, logs: exportLogs }: { format: 'json' | 'csv' | 'har'; logs: UnifiedLogEntry[] }) => {
+  const data = dashboard.export(format, exportLogs)
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const mimeTypes = { json: 'application/json', csv: 'text/csv', har: 'application/json' }
   downloadFile(data, `network-logs-${timestamp}.${format}`, mimeTypes[format])
-  showExportMenu.value = false
+  showExportModal.value = false
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isFullscreen.value) {
+    toggleFullscreen()
+    return
+  }
   const { ctrl, alt, shift, meta } = resolvedModifiers.value
   if (
     (ctrl === undefined || event.ctrlKey === ctrl) &&
@@ -260,11 +383,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 }
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (showExportMenu.value) {
-    if (!(event.target as HTMLElement).closest('.export-dropdown'))
-      showExportMenu.value = false
-  }
-  if (isPinned.value || !isVisible.value) return
+  if (isPinned.value || !isVisible.value || isFullscreen.value) return
   if (!(event.target as HTMLElement).closest('.network-debugger') &&
       !(event.target as HTMLElement).closest('.debugger-toggle'))
     isVisible.value = false
@@ -298,6 +417,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('click', handleClickOutside)
+  if (isFullscreen.value) document.body.style.overflow = ''
 })
 
 defineExpose({
@@ -312,7 +432,19 @@ defineExpose({
 <template>
   <Teleport to="body">
     <!-- Panel -->
-    <div v-if="isVisible" class="network-debugger" :style="panelStyle">
+    <div v-if="isVisible" :class="['network-debugger', { fullscreen: isFullscreen }]" :style="panelStyle">
+      <!-- Resize handles (скрыты в fullscreen) -->
+      <template v-if="!isFullscreen">
+        <div class="resize-handle resize-n"  @mousedown.stop="startResize('n',  $event)" />
+        <div class="resize-handle resize-e"  @mousedown.stop="startResize('e',  $event)" />
+        <div class="resize-handle resize-s"  @mousedown.stop="startResize('s',  $event)" />
+        <div class="resize-handle resize-w"  @mousedown.stop="startResize('w',  $event)" />
+        <div class="resize-handle resize-ne" @mousedown.stop="startResize('ne', $event)" />
+        <div class="resize-handle resize-se" @mousedown.stop="startResize('se', $event)" />
+        <div class="resize-handle resize-sw" @mousedown.stop="startResize('sw', $event)" />
+        <div class="resize-handle resize-nw" @mousedown.stop="startResize('nw', $event)" />
+      </template>
+
       <div ref="containerRef" class="debugger-container">
 
         <!-- Header — drag handle -->
@@ -361,6 +493,30 @@ defineExpose({
               <template v-else>Diff</template>
             </button>
 
+            <div class="header-divider" />
+
+            <!-- Export -->
+            <button class="btn-icon-label" title="Export logs" @click.stop="showExportModal = true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export
+            </button>
+
+            <!-- Clear -->
+            <button class="btn-icon danger" title="Clear logs" @click="handleClearLogs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+
+            <div class="header-divider" />
+
             <!-- Pin -->
             <button
               :class="['btn-icon', { active: isPinned }]"
@@ -375,58 +531,19 @@ defineExpose({
               </svg>
             </button>
 
-            <div class="header-divider" />
-
-            <!-- Clear -->
-            <button class="btn-icon danger" title="Clear logs" @click="handleClearLogs">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
+            <!-- Fullscreen -->
+            <button
+              :class="['btn-icon', { active: isFullscreen }]"
+              :title="isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'"
+              @click.stop="toggleFullscreen"
+            >
+              <svg v-if="!isFullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
               </svg>
             </button>
-
-            <!-- Export -->
-            <div class="export-dropdown">
-              <button class="btn-icon-label" title="Export logs" @click="showExportMenu = !showExportMenu">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Export
-              </button>
-              <div v-if="showExportMenu" class="export-menu">
-                <button @click="handleExport('json')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
-                  Export as JSON
-                </button>
-                <button @click="handleExport('csv')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="8" y1="13" x2="16" y2="13"/>
-                    <line x1="8" y1="17" x2="16" y2="17"/>
-                  </svg>
-                  Export as CSV
-                </button>
-                <button @click="handleExport('har')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <circle cx="10" cy="14" r="2"/><path d="m20 20-3-3"/>
-                    <path d="M14 14h2"/>
-                  </svg>
-                  Export as HAR
-                </button>
-              </div>
-            </div>
-
-            <div class="header-divider" />
 
             <!-- Close -->
             <button class="btn-icon" title="Close (Ctrl+Shift+D)" @click="isVisible = false">
@@ -567,6 +684,15 @@ defineExpose({
             </span>
           </div>
         </div>
+
+        <!-- Export Modal -->
+        <ExportModal
+          v-if="showExportModal"
+          :logs="logs"
+          @close="showExportModal = false"
+          @export="handleExport"
+        />
+
       </div>
     </div>
 

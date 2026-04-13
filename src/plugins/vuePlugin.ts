@@ -16,7 +16,7 @@ export interface VueNetworkDashboardInstance {
   isEnabled: () => boolean
   getStats: () => NetworkStats
   getStatsSummary: () => string
-  export: (format?: 'json' | 'csv' | 'har') => string
+  export: (format?: 'json' | 'csv' | 'har', customLogs?: UnifiedLogEntry[]) => string
   getLogsByType: (type: 'http' | 'websocket' | 'sse') => UnifiedLogEntry[]
   getLogsByUrl: (urlPattern: string | RegExp) => UnifiedLogEntry[]
   getLogsByStatus: (statusRange: [number, number]) => UnifiedLogEntry[]
@@ -63,7 +63,7 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
     isEnabled: () => logger.getEnabled(),
     getStats: () => logger.getStats(),
     getStatsSummary: () => logger.getStatsSummary(),
-    export: (format: 'json' | 'csv' | 'har' = 'json') => logger.export(format),
+    export: (format: 'json' | 'csv' | 'har' = 'json', customLogs?: UnifiedLogEntry[]) => logger.export(format, customLogs),
     getLogsByType: (type) => logger.getLogsByType(type),
     getLogsByUrl: (urlPattern) => logger.getLogsByUrl(urlPattern),
     getLogsByStatus: (statusRange) => logger.getLogsByStatus(statusRange),

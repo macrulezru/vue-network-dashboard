@@ -27,6 +27,7 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 - [Configuration Reference](#configuration-reference)
 - [Log Entry Structure](#log-entry-structure)
 - [Instance API](#instance-api)
+- [Vue Router Integration](#vue-router-integration)
 - [Advanced Usage](#advanced-usage)
   - [Filtering Logs](#filtering-logs)
   - [Subscribing to New Logs](#subscribing-to-new-logs)
@@ -60,7 +61,11 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 | **Diff View** | Select any two log entries to see a side-by-side diff of headers and body |
 | **Grouping** | Collapse repeated requests to the same endpoint into a single row with a count badge |
 | **Body Search** | Filter log entries by content of request or response body |
-| **Built-in Debugger UI** | Draggable panel with filters, 3-tab detail view, stats, timeline, mock editor, and export |
+| **Regex Search** | Prefix any URL or body filter with `regex:` to match by regular expression |
+| **Route Context** | Attach the current Vue Router route to every log entry; filter by route in the UI |
+| **Filtered Export** | Export modal with format selector (JSON / CSV / HAR), protocol checkboxes, status checkboxes, and dual time-range slider |
+| **Fullscreen Mode** | Expand the debugger panel to fill the entire viewport with a single click |
+| **Built-in Debugger UI** | Draggable, resizable panel with filters, 3-tab detail view, stats, timeline, mock editor, and export |
 | **Nuxt 3 Module** | First-class Nuxt integration with auto-registration and `useNetworkDashboard()` auto-import |
 | **Vue DevTools** | Optional inspector tab and timeline layer in Vue DevTools (browser extension + vite-plugin-vue-devtools) |
 | **Sentry / OpenTelemetry** | Ready-made adapters for error tracking and distributed tracing |
@@ -316,12 +321,13 @@ import { NetworkDebugger } from 'vue-network-dashboard'
 
 The panel includes:
 
-- **Filter bar** — filter by type (HTTP / WS / SSE), URL substring, HTTP method, status code, minimum duration, and errors-only toggle
-- **Log list** — scrollable, colour-coded entries with expandable detail view (Request / Response / Meta tabs)
+- **Filter bar** — filter by type (HTTP / WS / SSE), URL, body (both support `regex:pattern`), HTTP method, status code, route, minimum duration, and errors-only toggle
+- **Log list** — scrollable, colour-coded entries with expandable detail view (Request / Response / Meta tabs); Meta tab shows the Vue Router route when available
 - **Statistics panel** — request counts, error rate, average duration, data transfer, method distribution, status distribution, slowest and largest requests
-- **Export** — download logs as JSON or CSV directly from the panel header
+- **Export modal** — format selector (JSON / CSV / HAR), filter by protocol and status codes, dual time-range slider showing `N / M logs` count before confirming
+- **Fullscreen mode** — expand to full viewport; page scroll is blocked while active; exit with the button or `Escape`
 - **Pin** — pin the panel so it stays open when clicking outside
-- **Drag to move** — drag the panel by its header to any position on screen
+- **Drag & resize** — drag the panel by its header; resize from any of the 8 edges and corners
 - **Toggle FAB** — compact floating button with request count and error indicator when the panel is hidden
 - **Keyboard shortcut** — `Ctrl+Shift+D` by default (configurable)
 
@@ -441,6 +447,8 @@ const debugger = ref()
 | `maxLogs` | `number` | `1000` | Maximum entries kept in memory. Oldest are evicted when the limit is reached |
 | `devOnly` | `boolean` | `false` | When `true`, the plugin is a no-op in production (`import.meta.env.PROD`) |
 | `persistToStorage` | `boolean` | `false` | Persist logs to `localStorage` and restore them on page reload |
+| `router` | `Router` | — | Vue Router instance. Required for route context enrichment (see [Vue Router Integration](#vue-router-integration)) |
+| `enrichWithRoute` | `boolean` | `false` | Attach `router.currentRoute.value.fullPath` to every log entry as `entry.route` |
 
 ### `interceptors`
 
@@ -575,6 +583,10 @@ interface UnifiedLogEntry {
     retryCount: number
     timestamp: string               // ISO 8601 timestamp at log creation
   }
+
+  // Vue Router route path at the moment the request was initiated.
+  // Populated only when `enrichWithRoute: true` is set in plugin options.
+  route?: string
 }
 ```
 
@@ -657,6 +669,60 @@ const unsubscribe = subscribe((entry: UnifiedLogEntry) => {
 
 unsubscribe()  // stop receiving events
 ```
+
+---
+
+## Vue Router Integration
+
+Enable route context to automatically tag every log entry with the Vue Router route path that was active when the request was made. This makes it easy to trace which page triggered a slow request or an error without manually correlating by timestamp.
+
+### Vue 3 SPA
+
+```typescript
+// main.ts
+import { createApp } from 'vue'
+import { createRouter, createWebHistory } from 'vue-router'
+import NetworkDashboard from 'vue-network-dashboard'
+import App from './App.vue'
+
+const router = createRouter({ history: createWebHistory(), routes })
+const app = createApp(App)
+
+app.use(router)
+app.use(NetworkDashboard, {
+  router,
+  enrichWithRoute: true,
+})
+
+app.mount('#app')
+```
+
+### Nuxt 3
+
+```typescript
+// plugins/network-dashboard.client.ts
+export default defineNuxtPlugin((nuxtApp) => {
+  nuxtApp.vueApp.use(NetworkDashboardPlugin, {
+    router: nuxtApp.$router,
+    enrichWithRoute: true,
+  })
+})
+```
+
+### What it adds
+
+When `enrichWithRoute: true` is configured, each `UnifiedLogEntry` gains a `route` field:
+
+```typescript
+entry.route  // e.g. "/dashboard/users/42"
+```
+
+In the debugger UI:
+- A **Route** filter input appears in the filter bar (only when at least one log carries a route). Supports `regex:` prefix.
+- The **Meta** tab of each expanded log entry shows a highlighted **Route** chip.
+- The **Export** modal counts are route-aware — filtering by route reduces the exported set.
+
+The feature has **no runtime dependency on `vue-router`** — the plugin accepts any object that satisfies the minimal `RouterInstance` interface (`currentRoute` + `afterEach`).
 
 ---
 

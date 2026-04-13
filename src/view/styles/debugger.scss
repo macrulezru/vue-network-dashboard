@@ -12,17 +12,67 @@
   font-size: variables.$font-size-lg;
   line-height: 1.5;
   color: variables.$text-primary;
+
+  &.fullscreen {
+    bottom: auto;
+    right: auto;
+
+    .debugger-container {
+      border-radius: 0;
+      box-shadow: none;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+    }
+  }
 }
 
 .debugger-container {
-  width: 960px;
-  height: 620px;
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: variables.$bg-surface;
   border-radius: variables.$border-radius-xl;
   box-shadow: variables.$shadow-lg;
   @include mixins.flex-column;
   overflow: hidden;
   border: 1px solid variables.$border-color;
+}
+
+// ─── Resize handles ───────────────────────────────────────────────────────────
+
+.resize-handle {
+  position: absolute;
+  z-index: 10;
+
+  // Edges
+  &.resize-n  { top: -4px;  left: 12px;  right: 12px; height: 8px;  cursor: ns-resize; }
+  &.resize-s  { bottom: -4px; left: 12px; right: 12px; height: 8px; cursor: ns-resize; }
+  &.resize-e  { right: -4px; top: 12px; bottom: 12px;  width: 8px;  cursor: ew-resize; }
+  &.resize-w  { left: -4px;  top: 12px; bottom: 12px;  width: 8px;  cursor: ew-resize; }
+
+  // Corners
+  &.resize-ne { top: -4px;    right: -4px;  width: 16px; height: 16px; cursor: nesw-resize; }
+  &.resize-nw { top: -4px;    left: -4px;   width: 16px; height: 16px; cursor: nwse-resize; }
+  &.resize-se { bottom: -4px; right: -4px;  width: 16px; height: 16px; cursor: nwse-resize; }
+  &.resize-sw { bottom: -4px; left: -4px;   width: 16px; height: 16px; cursor: nesw-resize; }
+
+  // Визуальный грипп на SE-углу
+  &.resize-se::after {
+    content: '';
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid variables.$border-color;
+    border-bottom: 2px solid variables.$border-color;
+    border-radius: 0 0 2px 0;
+    opacity: 0.6;
+    transition: opacity variables.$transition-fast;
+  }
+
+  &.resize-se:hover::after { opacity: 1; }
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
@@ -254,9 +304,26 @@
   border-bottom: 1px solid variables.$border-color;
   display: flex;
   align-items: center;
-  gap: variables.$spacing-sm;
+  gap: variables.$spacing-md;
   flex-shrink: 0;
-  flex-wrap: nowrap;
+}
+
+.filter-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .filter-search-wrap { width: 100%; }
+}
+
+.filter-row-secondary {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacing-sm;
+
+  .filter-body-wrap { flex: 1; min-width: 0; }
 }
 
 .filter-type-tabs {
@@ -307,6 +374,41 @@
     pointer-events: none;
     stroke-width: 1.75;
   }
+
+  &.is-regex {
+    .filter-search-icon { color: variables.$accent-purple; }
+    .filter-input { border-color: variables.$accent-purple; padding-right: 32px; }
+  }
+}
+
+.filter-body-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+
+  .filter-body-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  &.is-regex .filter-body-input {
+    border-color: variables.$accent-purple;
+    padding-right: 28px;
+  }
+}
+
+.filter-regex-badge {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  font-family: variables.$font-family-mono;
+  color: variables.$accent-purple;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  line-height: 1;
 }
 
 .filter-input {
@@ -850,6 +952,12 @@
   color: variables.$text-muted;
 
   strong { color: variables.$text-secondary; font-weight: 500; }
+
+  &-route {
+    color: variables.$accent-blue;
+    border-color: rgba(variables.$accent-blue, 0.3);
+    background: variables.$accent-blue-muted;
+  }
 }
 
 .error-banner {
@@ -1302,8 +1410,6 @@
 }
 
 // ─── Log group (grouped view) ─────────────────────────────────────────────────
-
-.log-group {}
 
 .log-group-header {
   display: grid;
@@ -1898,4 +2004,286 @@
     &:hover { background: #3d8ef0; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
+}
+
+// ─── Export Modal ─────────────────────────────────────────────────────────────
+
+.export-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  border-radius: variables.$border-radius-xl;
+}
+
+.export-modal {
+  background: variables.$bg-elevated;
+  border: 1px solid variables.$border-color;
+  border-radius: variables.$border-radius-xl;
+  width: 380px;
+  max-width: calc(100% - 40px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.export-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid variables.$border-color;
+}
+
+.export-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: variables.$font-size-md;
+  font-weight: 600;
+  color: variables.$text-primary;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+    color: variables.$text-muted;
+  }
+}
+
+.export-modal-close {
+  @include mixins.button-reset;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  color: variables.$text-muted;
+  border-radius: variables.$border-radius-sm;
+
+  &:hover { color: variables.$text-primary; background: variables.$bg-hover; }
+}
+
+.export-modal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.export-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-section-label {
+  font-size: variables.$font-size-sm;
+  font-weight: 600;
+  color: variables.$text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-toggle-all {
+  @include mixins.button-reset;
+  font-size: variables.$font-size-xs;
+  font-weight: 400;
+  color: variables.$accent-blue;
+  text-transform: none;
+  letter-spacing: 0;
+
+  &:hover { color: #3d8ef0; }
+}
+
+// Format tabs
+.export-format-tabs {
+  display: flex;
+  background: variables.$bg-overlay;
+  border: 1px solid variables.$border-color;
+  border-radius: variables.$border-radius-md;
+  padding: 2px;
+  gap: 1px;
+  align-self: flex-start;
+
+  button {
+    @include mixins.button-reset;
+    padding: 4px 14px;
+    font-size: variables.$font-size-sm;
+    font-weight: 500;
+    color: variables.$text-secondary;
+    border-radius: variables.$border-radius-sm;
+    transition: all variables.$transition-fast;
+
+    &:hover { color: variables.$text-primary; }
+
+    &.active {
+      background: variables.$accent-blue;
+      color: #fff;
+    }
+  }
+}
+
+// Protocol list
+.export-protocol-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.export-protocol-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    accent-color: variables.$accent-blue;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.export-protocol-badge {
+  font-family: variables.$font-family-mono;
+  font-size: variables.$font-size-sm;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: variables.$border-radius-sm;
+
+  &.http       { background: variables.$accent-blue-muted;    color: variables.$accent-blue; }
+  &.websocket  { background: rgba(163, 113, 247, 0.12);       color: #a371f7; }
+  &.sse        { background: rgba(63, 185, 80, 0.12);         color: variables.$status-success; }
+}
+
+// Status list
+.export-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.export-status-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    accent-color: variables.$accent-blue;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.export-status-badge {
+  font-family: variables.$font-family-mono;
+  font-size: variables.$font-size-sm;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: variables.$border-radius-sm;
+
+  &.success      { background: rgba(63, 185, 80, 0.12);  color: variables.$status-success; }
+  &.info         { background: variables.$accent-blue-muted; color: variables.$accent-blue; }
+  &.client-error { background: rgba(210, 153, 34, 0.12); color: variables.$status-client-error; }
+  &.server-error { background: rgba(248, 81, 73, 0.10);  color: variables.$status-server-error; }
+}
+
+// Dual slider
+.export-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.export-slider-track {
+  position: relative;
+  height: 4px;
+  background: variables.$bg-overlay;
+  border-radius: 2px;
+  margin: 8px 0;
+  cursor: pointer;
+}
+
+.export-slider-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: variables.$accent-blue;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.export-slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: variables.$accent-blue;
+  border: 2px solid variables.$bg-elevated;
+  box-shadow: 0 0 0 1px variables.$accent-blue;
+  cursor: ew-resize;
+  z-index: 2;
+  transition: box-shadow variables.$transition-fast;
+
+  &:hover {
+    box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.25);
+  }
+}
+
+.export-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: variables.$font-size-xs;
+  font-family: variables.$font-family-mono;
+  color: variables.$text-muted;
+}
+
+// Footer
+.export-modal-footer {
+  padding: 12px 16px 14px;
+  border-top: 1px solid variables.$border-color;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-count {
+  font-size: variables.$font-size-sm;
+  color: variables.$text-muted;
+  font-family: variables.$font-family-mono;
+}
+
+.export-btn {
+  @include mixins.button-reset;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: variables.$accent-blue;
+  color: #fff;
+  border-radius: variables.$border-radius-md;
+  font-size: variables.$font-size-md;
+  font-weight: 500;
+  transition: all variables.$transition-fast;
+
+  svg { width: 13px; height: 13px; stroke-width: 2; }
+
+  &:hover { background: #3d8ef0; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
