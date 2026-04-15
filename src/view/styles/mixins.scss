@@ -26,15 +26,15 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: $bg-primary;
+    background: var(--nd-bg-surface);
   }
 
   &::-webkit-scrollbar-thumb {
-    background: $bg-active;
+    background: var(--nd-bg-active);
     border-radius: 3px;
 
     &:hover {
-      background: $text-muted;
+      background: var(--nd-text-muted);
     }
   }
 }
@@ -60,9 +60,9 @@
 
 // Card styling
 @mixin card {
-  background: $bg-secondary;
+  background: var(--nd-bg-elevated);
   border-radius: $border-radius-lg;
-  border: 1px solid $border-color;
+  border: 1px solid var(--nd-border-color);
 }
 
 // Hover effect
@@ -70,7 +70,7 @@
   transition: $transition-fast;
 
   &:hover {
-    background: $bg-hover;
+    background: var(--nd-bg-hover);
   }
 }
 
