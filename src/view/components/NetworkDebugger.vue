@@ -42,6 +42,40 @@ const resolvedModifiers = computed(() => ({
   ...props.hotkeyModifiers
 }))
 
+// ── Theme ──────────────────────────────────────────────────────────────────────
+type Theme = 'dark' | 'light' | 'auto'
+const THEME_KEY = 'vue-network-dashboard:theme'
+
+const getInitialTheme = (): Theme => {
+  try {
+    const stored = localStorage.getItem(THEME_KEY)
+    if (stored === 'dark' || stored === 'light' || stored === 'auto') return stored
+  } catch {}
+  const fromPlugin = pluginUi?.theme
+  if (fromPlugin === 'dark' || fromPlugin === 'light' || fromPlugin === 'auto') return fromPlugin
+  return 'dark'
+}
+
+const theme = ref<Theme>(getInitialTheme())
+const systemPrefersDark = ref(typeof window !== 'undefined'
+  ? window.matchMedia('(prefers-color-scheme: dark)').matches
+  : true
+)
+let mqListener: ((e: MediaQueryListEvent) => void) | null = null
+
+const resolvedTheme = computed((): 'dark' | 'light' =>
+  theme.value === 'auto' ? (systemPrefersDark.value ? 'dark' : 'light') : theme.value
+)
+
+watch(theme, (val) => {
+  try { localStorage.setItem(THEME_KEY, val) } catch {}
+})
+
+const cycleTheme = () => {
+  const cycle: Theme[] = ['dark', 'light', 'auto']
+  theme.value = cycle[(cycle.indexOf(theme.value) + 1) % 3]
+}
+
 const dashboard = useNetworkDashboard()
 const logs = dashboard.logs
 
@@ -547,6 +581,9 @@ const formatBytes = (bytes: number): string => {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   document.addEventListener('click', handleClickOutside)
+  const mq = window.matchMedia('(prefers-color-scheme: dark)')
+  mqListener = (e) => { systemPrefersDark.value = e.matches }
+  mq.addEventListener('change', mqListener)
   scrollObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && displayCount.value < filteredLogs.value.length)
       displayCount.value = Math.min(displayCount.value + 50, filteredLogs.value.length)
@@ -566,6 +603,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('click', handleClickOutside)
+  if (mqListener) window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', mqListener)
   if (isFullscreen.value) document.body.style.overflow = ''
   if (filterDebounceTimer) clearTimeout(filterDebounceTimer)
   scrollObserver?.disconnect()
@@ -582,6 +620,7 @@ defineExpose({
 
 <template>
   <Teleport to="body">
+    <div class="nd-root" :data-theme="resolvedTheme">
     <!-- Panel -->
     <div v-if="isVisible" :class="['network-debugger', { fullscreen: isFullscreen }]" :style="panelStyle">
       <!-- Resize handles (скрыты в fullscreen) -->
@@ -684,6 +723,35 @@ defineExpose({
             </button>
 
             <div class="header-divider" />
+
+            <!-- Theme toggle -->
+            <button
+              class="btn-icon"
+              :title="`Theme: ${theme} — click to cycle (dark → light → auto)`"
+              @click.stop="cycleTheme"
+            >
+              <!-- Dark: moon -->
+              <svg v-if="theme === 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+              <!-- Light: sun -->
+              <svg v-else-if="theme === 'light'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              <!-- Auto: monitor -->
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8M12 17v4"/>
+              </svg>
+            </button>
 
             <!-- Pin -->
             <button
@@ -899,5 +967,6 @@ defineExpose({
       <span class="toggle-count">{{ logs.length }}</span>
       <span v-if="hasErrors" class="toggle-error-dot" />
     </button>
+    </div><!-- /.nd-root -->
   </Teleport>
 </template>

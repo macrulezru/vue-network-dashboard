@@ -144,6 +144,8 @@ export interface NetworkDashboardOptions {
       shift?: boolean
       meta?: boolean
     }
+    /** Panel color scheme. 'auto' follows the OS prefers-color-scheme. Default: 'dark'. */
+    theme?: 'dark' | 'light' | 'auto'
   }
 }
 

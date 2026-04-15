@@ -1,6 +1,74 @@
 @use 'variables';
 @use 'mixins';
 
+// ─── Theme CSS custom properties ─────────────────────────────────────────────
+//
+// Scoped to .nd-root (display:contents wrapper) so both the panel and the
+// toggle FAB inherit the values without polluting the global scope.
+//
+.nd-root {
+  // ── Dark theme (default) ────────────────────────────────────────────────
+  --nd-bg-base:     #0d1117;
+  --nd-bg-surface:  #161b22;
+  --nd-bg-elevated: #21262d;
+  --nd-bg-overlay:  #2d333b;
+  --nd-bg-hover:    #2d333b;
+  --nd-bg-active:   #373e47;
+  --nd-bg-input:    #0d1117;
+
+  --nd-text-primary:   #e6edf3;
+  --nd-text-secondary: #8b949e;
+  --nd-text-muted:     #484f58;
+  --nd-text-white:     #ffffff;
+
+  --nd-border-color:   #21262d;
+  --nd-border-default: #30363d;
+
+  --nd-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --nd-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --nd-shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px #21262d;
+
+  --nd-accent-blue-muted: rgba(88, 166, 255, 0.15);
+
+  // Hardcoded colors used in a handful of rules
+  --nd-code-color:       #d2a679;
+  --nd-log-entry-border: rgba(33, 38, 45, 0.6);
+  --nd-error-stack-color: rgba(248, 81, 73, 0.6);
+
+  // ── Light theme ──────────────────────────────────────────────────────────
+  &[data-theme="light"] {
+    --nd-bg-base:     #f6f8fa;
+    --nd-bg-surface:  #ffffff;
+    --nd-bg-elevated: #f6f8fa;
+    --nd-bg-overlay:  #eaeef2;
+    --nd-bg-hover:    #eaeef2;
+    --nd-bg-active:   #dde3ec;
+    --nd-bg-input:    #ffffff;
+
+    --nd-text-primary:   #1f2328;
+    --nd-text-secondary: #656d76;
+    --nd-text-muted:     #9a9ea6;
+    --nd-text-white:     #1f2328;
+
+    --nd-border-color:   #d0d7de;
+    --nd-border-default: #c7cdd3;
+
+    --nd-shadow-sm: 0 1px 3px rgba(31, 35, 40, 0.12);
+    --nd-shadow-md: 0 4px 16px rgba(31, 35, 40, 0.15);
+    --nd-shadow-lg: 0 8px 48px rgba(31, 35, 40, 0.2), 0 0 0 1px #d0d7de;
+
+    --nd-accent-blue-muted: rgba(9, 105, 218, 0.1);
+
+    --nd-code-color:        #953800;
+    --nd-log-entry-border:  rgba(208, 215, 222, 0.6);
+    --nd-error-stack-color: rgba(207, 34, 46, 0.6);
+  }
+}
+
+// .nd-root is a display:contents wrapper — invisible to layout, but lets both
+// the panel and the FAB inherit the CSS custom properties above.
+.nd-root { display: contents; }
+
 // ─── Base container ───────────────────────────────────────────────────────────
 
 .network-debugger {
@@ -11,7 +79,7 @@
   font-family: variables.$font-family-base;
   font-size: variables.$font-size-lg;
   line-height: 1.5;
-  color: variables.$text-primary;
+  color: var(--nd-text-primary);
 
   &.fullscreen {
     bottom: auto;
@@ -31,12 +99,12 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background: variables.$bg-surface;
+  background: var(--nd-bg-surface);
   border-radius: variables.$border-radius-xl;
-  box-shadow: variables.$shadow-lg;
+  box-shadow: var(--nd-shadow-lg);
   @include mixins.flex-column;
   overflow: hidden;
-  border: 1px solid variables.$border-color;
+  border: 1px solid var(--nd-border-color);
 }
 
 // ─── Resize handles ───────────────────────────────────────────────────────────
@@ -65,8 +133,8 @@
     bottom: 6px;
     width: 6px;
     height: 6px;
-    border-right: 2px solid variables.$border-color;
-    border-bottom: 2px solid variables.$border-color;
+    border-right: 2px solid var(--nd-border-color);
+    border-bottom: 2px solid var(--nd-border-color);
     border-radius: 0 0 2px 0;
     opacity: 0.6;
     transition: opacity variables.$transition-fast;
@@ -80,8 +148,8 @@
 .debugger-header {
   padding: 0 variables.$spacing-lg;
   height: 44px;
-  background: variables.$bg-elevated;
-  border-bottom: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border-bottom: 1px solid var(--nd-border-color);
   @include mixins.flex-between;
   flex-shrink: 0;
   gap: variables.$spacing-md;
@@ -101,7 +169,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: variables.$text-white;
+  color: var(--nd-text-white);
   font-weight: 600;
   font-size: variables.$font-size-xl;
   letter-spacing: -0.01em;
@@ -117,12 +185,12 @@
   align-items: center;
   gap: variables.$spacing-xs;
   padding: 2px 8px;
-  background: variables.$bg-overlay;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-overlay);
+  border: 1px solid var(--nd-border-color);
   border-radius: 20px;
   font-size: variables.$font-size-sm;
   font-family: variables.$font-family-mono;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
 
   .count-filtered {
     color: variables.$accent-blue;
@@ -130,7 +198,7 @@
   }
 
   .count-divider {
-    color: variables.$text-muted;
+    color: var(--nd-text-muted);
   }
 }
 
@@ -150,7 +218,7 @@
   width: 28px;
   height: 28px;
   border-radius: variables.$border-radius-md;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   transition: background variables.$transition-fast, color variables.$transition-fast;
 
   svg {
@@ -160,12 +228,12 @@
   }
 
   &:hover {
-    background: variables.$bg-overlay;
-    color: variables.$text-primary;
+    background: var(--nd-bg-overlay);
+    color: var(--nd-text-primary);
   }
 
   &.active {
-    background: variables.$accent-blue-muted;
+    background: var(--nd-accent-blue-muted);
     color: variables.$accent-blue;
   }
 
@@ -183,7 +251,7 @@
   height: 28px;
   padding: 0 variables.$spacing-sm;
   border-radius: variables.$border-radius-md;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-size: variables.$font-size-sm;
   transition: background variables.$transition-fast, color variables.$transition-fast;
 
@@ -194,8 +262,8 @@
   }
 
   &:hover {
-    background: variables.$bg-overlay;
-    color: variables.$text-primary;
+    background: var(--nd-bg-overlay);
+    color: var(--nd-text-primary);
   }
 
   &.active {
@@ -207,7 +275,7 @@
 .header-divider {
   width: 1px;
   height: 18px;
-  background: variables.$border-color;
+  background: var(--nd-border-color);
   margin: 0 4px;
 }
 
@@ -221,10 +289,10 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-default;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-default);
   border-radius: variables.$border-radius-lg;
-  box-shadow: variables.$shadow-md;
+  box-shadow: var(--nd-shadow-md);
   z-index: 10;
   min-width: 170px;
   overflow: hidden;
@@ -238,7 +306,7 @@
     padding: 7px variables.$spacing-sm;
     background: transparent;
     border: none;
-    color: variables.$text-primary;
+    color: var(--nd-text-primary);
     font-size: variables.$font-size-lg;
     font-family: variables.$font-family-base;
     cursor: pointer;
@@ -249,15 +317,15 @@
     svg {
       width: 14px;
       height: 14px;
-      color: variables.$text-secondary;
+      color: var(--nd-text-secondary);
       stroke-width: 1.75;
       flex-shrink: 0;
     }
 
     &:hover {
-      background: variables.$bg-overlay;
+      background: var(--nd-bg-overlay);
 
-      svg { color: variables.$text-primary; }
+      svg { color: var(--nd-text-primary); }
     }
   }
 }
@@ -269,8 +337,8 @@
   align-items: flex-end;
   gap: 0;
   padding: 0 variables.$spacing-lg;
-  background: variables.$bg-surface;
-  border-bottom: 1px solid variables.$border-color;
+  background: var(--nd-bg-surface);
+  border-bottom: 1px solid var(--nd-border-color);
   flex-shrink: 0;
   height: 36px;
 
@@ -280,13 +348,13 @@
     padding: 0 variables.$spacing-md;
     font-size: variables.$font-size-md;
     font-weight: 500;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     transition: color variables.$transition-fast, border-color variables.$transition-fast;
 
     &:hover {
-      color: variables.$text-primary;
+      color: var(--nd-text-primary);
     }
 
     &.active {
@@ -300,8 +368,8 @@
 
 .filter-bar {
   padding: 6px variables.$spacing-lg;
-  background: variables.$bg-surface;
-  border-bottom: 1px solid variables.$border-color;
+  background: var(--nd-bg-surface);
+  border-bottom: 1px solid var(--nd-border-color);
   display: flex;
   align-items: center;
   gap: variables.$spacing-md;
@@ -328,8 +396,8 @@
 
 .filter-type-tabs {
   display: flex;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   padding: 2px;
   gap: 1px;
@@ -340,16 +408,16 @@
     padding: 3px 9px;
     font-size: variables.$font-size-sm;
     font-weight: 500;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     border-radius: variables.$border-radius-sm;
     transition: all variables.$transition-fast;
     white-space: nowrap;
 
-    &:hover { color: variables.$text-primary; }
+    &:hover { color: var(--nd-text-primary); }
 
     &.active {
-      background: variables.$bg-overlay;
-      color: variables.$text-primary;
+      background: var(--nd-bg-overlay);
+      color: var(--nd-text-primary);
     }
 
     &.active-http  { color: variables.$accent-blue; }
@@ -370,7 +438,7 @@
     transform: translateY(-50%);
     width: 13px;
     height: 13px;
-    color: variables.$text-muted;
+    color: var(--nd-text-muted);
     pointer-events: none;
     stroke-width: 1.75;
   }
@@ -414,9 +482,9 @@
 .filter-input {
   width: 100%;
   box-sizing: border-box;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
-  color: variables.$text-primary;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
+  color: var(--nd-text-primary);
   padding: 5px 10px 5px 28px;
   border-radius: variables.$border-radius-md;
   font-size: variables.$font-size-md;
@@ -424,19 +492,19 @@
   transition: border-color variables.$transition-fast;
   min-width: 0;
 
-  &::placeholder { color: variables.$text-muted; }
+  &::placeholder { color: var(--nd-text-muted); }
 
   &:focus {
     outline: none;
     border-color: variables.$accent-blue;
-    background: variables.$bg-input;
+    background: var(--nd-bg-input);
   }
 }
 
 .filter-input-plain {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
-  color: variables.$text-primary;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
+  color: var(--nd-text-primary);
   padding: 5px 10px;
   border-radius: variables.$border-radius-md;
   font-size: variables.$font-size-md;
@@ -445,7 +513,7 @@
   width: 80px;
   flex-shrink: 0;
 
-  &::placeholder { color: variables.$text-muted; }
+  &::placeholder { color: var(--nd-text-muted); }
 
   &:focus {
     outline: none;
@@ -466,9 +534,9 @@
   border-radius: variables.$border-radius-md;
   font-size: variables.$font-size-sm;
   font-weight: 500;
-  color: variables.$text-secondary;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  color: var(--nd-text-secondary);
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   white-space: nowrap;
   transition: all variables.$transition-fast;
 
@@ -476,14 +544,14 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: variables.$text-muted;
+    background: var(--nd-text-muted);
     transition: background variables.$transition-fast;
     flex-shrink: 0;
   }
 
   &:hover {
-    color: variables.$text-primary;
-    border-color: variables.$border-default;
+    color: var(--nd-text-primary);
+    border-color: var(--nd-border-default);
   }
 
   &.active {
@@ -503,7 +571,7 @@
   padding: 4px 9px;
   border-radius: variables.$border-radius-md;
   font-size: variables.$font-size-sm;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   border: 1px solid transparent;
   transition: all variables.$transition-fast;
   flex-shrink: 0;
@@ -515,9 +583,9 @@
   }
 
   &:hover {
-    color: variables.$text-primary;
-    background: variables.$bg-elevated;
-    border-color: variables.$border-color;
+    color: var(--nd-text-primary);
+    background: var(--nd-bg-elevated);
+    border-color: var(--nd-border-color);
   }
 }
 
@@ -534,8 +602,8 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    background: variables.$bg-elevated;
-    border: 1px solid variables.$border-color;
+    background: var(--nd-bg-elevated);
+    border: 1px solid var(--nd-border-color);
     border-radius: variables.$border-radius-md;
     padding: 5px 4px 5px 8px;
     cursor: pointer;
@@ -544,7 +612,7 @@
     box-sizing: border-box;
     width: 100%;
 
-    &:hover { border-color: variables.$border-default; }
+    &:hover { border-color: var(--nd-border-default); }
   }
 
   &.open .filter-select-trigger { border-color: variables.$accent-blue; }
@@ -554,19 +622,19 @@
     flex: 1;
     font-size: variables.$font-size-md;
     font-family: variables.$font-family-mono;
-    color: variables.$text-primary;
+    color: var(--nd-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
 
-    &.placeholder { color: variables.$text-muted; }
+    &.placeholder { color: var(--nd-text-muted); }
   }
 
   &-arrow {
     width: 11px;
     height: 11px;
-    color: variables.$text-muted;
+    color: var(--nd-text-muted);
     stroke-width: 2.5;
     flex-shrink: 0;
     transition: transform variables.$transition-fast;
@@ -583,7 +651,7 @@
     justify-content: center;
     font-size: 15px;
     line-height: 1;
-    color: variables.$text-muted;
+    color: var(--nd-text-muted);
     flex-shrink: 0;
     border-radius: 2px;
 
@@ -595,8 +663,8 @@
     top: calc(100% + 3px);
     left: 0;
     min-width: 100%;
-    background: variables.$bg-overlay;
-    border: 1px solid variables.$border-color;
+    background: var(--nd-bg-overlay);
+    border: 1px solid var(--nd-border-color);
     border-radius: variables.$border-radius-md;
     padding: 3px;
     z-index: 200;
@@ -611,7 +679,7 @@
     padding: 4px 8px;
     font-size: variables.$font-size-sm;
     font-family: variables.$font-family-mono;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     border-radius: variables.$border-radius-sm;
     text-align: left;
     width: 100%;
@@ -619,12 +687,12 @@
     white-space: nowrap;
 
     &:hover {
-      background: variables.$bg-hover;
-      color: variables.$text-primary;
+      background: var(--nd-bg-hover);
+      color: var(--nd-text-primary);
     }
 
     &.active {
-      background: variables.$accent-blue-muted;
+      background: var(--nd-accent-blue-muted);
       color: variables.$accent-blue;
     }
   }
@@ -635,7 +703,7 @@
 .debugger-content {
   flex: 1;
   overflow: hidden;
-  background: variables.$bg-surface;
+  background: var(--nd-bg-surface);
 }
 
 // ─── Logs panel ───────────────────────────────────────────────────────────────
@@ -659,7 +727,7 @@
   justify-content: center;
   height: 100%;
   gap: variables.$spacing-md;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-size: variables.$font-size-lg;
 
   svg {
@@ -677,7 +745,7 @@
 .log-entry {
   border-left: 2px solid transparent;
   transition: border-color variables.$transition-fast;
-  border-bottom: 1px solid rgba(33, 38, 45, 0.6);
+  border-bottom: 1px solid var(--nd-log-entry-border);
 
   &:last-child { border-bottom: none; }
 
@@ -686,11 +754,11 @@
   &.sse         { border-left-color: variables.$info-text; }
   &.has-error   { border-left-color: variables.$error-text; }
 
-  &:hover .log-summary { background: variables.$bg-hover; }
+  &:hover .log-summary { background: var(--nd-bg-hover); }
 
   &.expanded .log-summary {
-    background: variables.$bg-elevated;
-    border-bottom: 1px solid variables.$border-color;
+    background: var(--nd-bg-elevated);
+    border-bottom: 1px solid var(--nd-border-color);
   }
 }
 
@@ -714,7 +782,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
 
   svg {
     width: 12px;
@@ -753,7 +821,7 @@
 .log-url {
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-md;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -771,7 +839,7 @@
   &.client-error { color: variables.$status-client-error; }
   &.server-error { color: variables.$status-server-error; }
   &.error        { color: variables.$error-text; }
-  &.pending      { color: variables.$text-muted; }
+  &.pending      { color: var(--nd-text-muted); }
   &.info         { color: variables.$info-text; }
 }
 
@@ -780,7 +848,7 @@
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
   text-align: right;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
 
   &.fast   { color: variables.$status-success; }
   &.medium { color: variables.$status-client-error; }
@@ -791,14 +859,14 @@
 .size {
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   text-align: right;
 }
 
 // Time
 .log-time {
   font-size: variables.$font-size-xs;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-family: variables.$font-family-mono;
   text-align: right;
 }
@@ -806,7 +874,7 @@
 // ─── Log details ──────────────────────────────────────────────────────────────
 
 .log-details {
-  background: variables.$bg-base;
+  background: var(--nd-bg-base);
   padding: variables.$spacing-md;
   display: flex;
   flex-direction: column;
@@ -817,7 +885,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
   margin-bottom: 2px;
 
   button {
@@ -825,12 +893,12 @@
     padding: 4px 10px 6px;
     font-size: variables.$font-size-sm;
     font-weight: 500;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     transition: all variables.$transition-fast;
 
-    &:hover { color: variables.$text-primary; }
+    &:hover { color: var(--nd-text-primary); }
     &.active {
       color: variables.$accent-blue;
       border-bottom-color: variables.$accent-blue;
@@ -862,7 +930,7 @@
   justify-content: space-between;
   font-size: variables.$font-size-sm;
   font-weight: 600;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -871,9 +939,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
-  color: variables.$text-secondary;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
+  color: var(--nd-text-secondary);
   font-size: variables.$font-size-xs;
   font-family: variables.$font-family-base;
   padding: 2px 8px;
@@ -884,16 +952,16 @@
   svg { width: 11px; height: 11px; stroke-width: 2; }
 
   &:hover {
-    background: variables.$bg-overlay;
-    color: variables.$text-primary;
-    border-color: variables.$border-default;
+    background: var(--nd-bg-overlay);
+    color: var(--nd-text-primary);
+    border-color: var(--nd-border-default);
   }
 }
 
 // Key-value table for headers
 .kv-table {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   overflow: hidden;
 }
@@ -901,7 +969,7 @@
 .kv-row {
   display: grid;
   grid-template-columns: 220px 1fr;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
   min-height: 26px;
   align-items: baseline;
 
@@ -912,27 +980,27 @@
   padding: 4px variables.$spacing-sm;
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   word-break: break-all;
-  border-right: 1px solid variables.$border-color;
+  border-right: 1px solid var(--nd-border-color);
 }
 
 .kv-val {
   padding: 4px variables.$spacing-sm;
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: variables.$text-primary;
+  color: var(--nd-text-primary);
   word-break: break-all;
 }
 
 .code-block {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   padding: variables.$spacing-sm;
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: #d2a679;
+  color: var(--nd-code-color);
   white-space: pre-wrap;
   word-break: break-all;
   overflow-x: auto;
@@ -953,19 +1021,19 @@
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: 20px;
   font-size: variables.$font-size-xs;
   font-family: variables.$font-family-mono;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
 
-  strong { color: variables.$text-secondary; font-weight: 500; }
+  strong { color: var(--nd-text-secondary); font-weight: 500; }
 
   &-route {
     color: variables.$accent-blue;
     border-color: rgba(variables.$accent-blue, 0.3);
-    background: variables.$accent-blue-muted;
+    background: var(--nd-accent-blue-muted);
   }
 }
 
@@ -982,7 +1050,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: variables.$accent-blue-muted;
+  background: var(--nd-accent-blue-muted);
   border-bottom: 1px solid rgba(variables.$accent-blue, 0.25);
   font-size: variables.$font-size-sm;
   color: variables.$accent-blue;
@@ -1051,7 +1119,7 @@
   .error-stack {
     font-family: variables.$font-family-mono;
     font-size: variables.$font-size-xs;
-    color: rgba(248, 81, 73, 0.6);
+    color: var(--nd-error-stack-color);
     white-space: pre-wrap;
     margin: 0;
     max-height: 80px;
@@ -1116,13 +1184,13 @@
 
 .stat-label {
   font-size: variables.$font-size-sm;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   font-weight: 500;
 }
 
 .stat-sub {
   font-size: variables.$font-size-xs;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-family: variables.$font-family-mono;
 }
 
@@ -1137,7 +1205,7 @@
     font-size: variables.$font-size-md;
     font-weight: 600;
     margin: 0;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -1146,15 +1214,15 @@
 .sparkline-peak {
   font-size: variables.$font-size-xs;
   font-weight: 400;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   text-transform: none;
   letter-spacing: 0;
   font-family: variables.$font-family-mono;
 }
 
 .sparkline-wrap {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   padding: 6px 4px;
   overflow: hidden;
@@ -1185,7 +1253,7 @@
   align-items: center;
   gap: variables.$spacing-sm;
   padding: 7px variables.$spacing-md;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
 
   &:last-child { border-bottom: none; }
 }
@@ -1214,14 +1282,14 @@
 .dist-count {
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: variables.$text-primary;
+  color: var(--nd-text-primary);
   font-weight: 600;
   text-align: right;
 }
 
 .dist-bar-track {
   height: 4px;
-  background: variables.$bg-elevated;
+  background: var(--nd-bg-elevated);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -1240,7 +1308,7 @@
 .dist-pct {
   font-size: variables.$font-size-xs;
   font-family: variables.$font-family-mono;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   text-align: right;
 }
 
@@ -1255,14 +1323,14 @@
   align-items: center;
   gap: variables.$spacing-sm;
   padding: 7px variables.$spacing-md;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
 
   &:last-child { border-bottom: none; }
 
   .perf-url {
     font-family: variables.$font-family-mono;
     font-size: variables.$font-size-sm;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     @include mixins.text-truncate;
     min-width: 0;
   }
@@ -1280,7 +1348,7 @@
 .empty-message {
   padding: variables.$spacing-lg;
   text-align: center;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-size: variables.$font-size-md;
 }
 
@@ -1289,11 +1357,11 @@
 .debugger-footer {
   padding: 0 variables.$spacing-lg;
   height: 30px;
-  background: variables.$bg-elevated;
-  border-top: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border-top: 1px solid var(--nd-border-color);
   @include mixins.flex-between;
   font-size: variables.$font-size-xs;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-family: variables.$font-family-mono;
   flex-shrink: 0;
   gap: variables.$spacing-xl;
@@ -1306,7 +1374,7 @@
   white-space: nowrap;
 
   .footer-val {
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     font-weight: 500;
   }
 
@@ -1330,19 +1398,19 @@
   gap: 6px;
   height: 36px;
   padding: 0 12px 0 10px;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-default;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-default);
   border-radius: 20px;
   cursor: pointer;
   z-index: variables.$z-toggle;
-  box-shadow: variables.$shadow-md;
+  box-shadow: var(--nd-shadow-md);
   transition: all variables.$transition-fast;
   font-family: variables.$font-family-base;
 
   &:hover {
-    background: variables.$bg-overlay;
+    background: var(--nd-bg-overlay);
     border-color: variables.$accent-blue;
-    box-shadow: 0 0 0 1px variables.$accent-blue, variables.$shadow-md;
+    box-shadow: 0 0 0 1px variables.$accent-blue, var(--nd-shadow-md);
   }
 
   .toggle-icon {
@@ -1356,7 +1424,7 @@
     font-size: variables.$font-size-sm;
     font-weight: 600;
     font-family: variables.$font-family-mono;
-    color: variables.$text-primary;
+    color: var(--nd-text-primary);
     line-height: 1;
   }
 
@@ -1401,7 +1469,7 @@
   height: 12px;
   stroke-width: 2;
   animation: spin 1s linear infinite;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
 }
 
 .mocked-badge {
@@ -1428,9 +1496,9 @@
   align-items: center;
   justify-content: center;
   border-radius: variables.$border-radius-sm;
-  border: 1px solid variables.$border-color;
-  background: variables.$bg-elevated;
-  color: variables.$text-muted;
+  border: 1px solid var(--nd-border-color);
+  background: var(--nd-bg-elevated);
+  color: var(--nd-text-muted);
   transition: all variables.$transition-fast;
 
   svg { width: 11px; height: 11px; stroke-width: 2; }
@@ -1438,13 +1506,13 @@
   &:hover {
     color: variables.$accent-blue;
     border-color: variables.$accent-blue;
-    background: variables.$accent-blue-muted;
+    background: var(--nd-accent-blue-muted);
   }
 
   &.active {
     color: variables.$accent-blue;
     border-color: variables.$accent-blue;
-    background: variables.$accent-blue-muted;
+    background: var(--nd-accent-blue-muted);
   }
 }
 
@@ -1455,7 +1523,7 @@
   align-items: center;
   gap: 4px;
   font-size: variables.$font-size-xs;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-family: variables.$font-family-mono;
 
   &::before {
@@ -1512,11 +1580,11 @@
   cursor: pointer;
   user-select: none;
   min-height: 32px;
-  background: variables.$bg-elevated;
-  border-bottom: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border-bottom: 1px solid var(--nd-border-color);
   transition: background variables.$transition-fast;
 
-  &:hover { background: variables.$bg-overlay; }
+  &:hover { background: var(--nd-bg-overlay); }
 }
 
 .group-count {
@@ -1526,19 +1594,19 @@
   width: 20px;
   height: 20px;
   border-radius: 10px;
-  background: variables.$bg-overlay;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-overlay);
+  border: 1px solid var(--nd-border-color);
   font-size: variables.$font-size-xs;
   font-family: variables.$font-family-mono;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   font-weight: 600;
 }
 
 // ─── Diff overlay ─────────────────────────────────────────────────────────────
 
 .diff-overlay {
-  border-bottom: 1px solid variables.$border-color;
-  background: variables.$bg-base;
+  border-bottom: 1px solid var(--nd-border-color);
+  background: var(--nd-bg-base);
   flex-shrink: 0;
   max-height: 280px;
   display: flex;
@@ -1550,11 +1618,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px variables.$spacing-lg;
-  background: variables.$bg-elevated;
-  border-bottom: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border-bottom: 1px solid var(--nd-border-color);
   font-size: variables.$font-size-sm;
   font-weight: 600;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   flex-shrink: 0;
 }
 
@@ -1579,8 +1647,8 @@
   align-items: center;
   gap: variables.$spacing-sm;
   padding: variables.$spacing-sm variables.$spacing-md;
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   font-size: variables.$font-size-sm;
   overflow: hidden;
@@ -1598,13 +1666,13 @@
 .diff-title-url {
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   @include mixins.text-truncate;
   min-width: 0;
 }
 
 .diff-sep {
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-size: variables.$font-size-lg;
   flex-shrink: 0;
 }
@@ -1616,8 +1684,8 @@
 }
 
 .diff-header-table {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   overflow: hidden;
 }
@@ -1628,7 +1696,7 @@
   gap: variables.$spacing-sm;
   align-items: baseline;
   padding: 4px variables.$spacing-sm;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
 
@@ -1640,7 +1708,7 @@
 }
 
 .diff-arrow {
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   text-align: center;
 }
 
@@ -1648,8 +1716,8 @@
 .diff-val-b { color: variables.$status-success; }
 
 .diff-code {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   padding: variables.$spacing-sm;
   font-family: variables.$font-family-mono;
@@ -1669,7 +1737,7 @@
 
   &.diff-line-add    { background: rgba(63, 185, 80, 0.12); color: variables.$status-success; }
   &.diff-line-remove { background: rgba(248, 81, 73, 0.12); color: variables.$error-text; }
-  &.diff-line-same   { color: variables.$text-muted; }
+  &.diff-line-same   { color: var(--nd-text-muted); }
 }
 
 .diff-sign {
@@ -1723,14 +1791,14 @@
   transform: translateX(-50%);
   font-size: variables.$font-size-xs;
   font-family: variables.$font-family-mono;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
 
   &::before {
     content: '';
     display: block;
     width: 1px;
     height: 4px;
-    background: variables.$border-color;
+    background: var(--nd-border-color);
     margin: 0 auto 2px;
   }
 }
@@ -1746,7 +1814,7 @@
   align-items: center;
   gap: 0;
   min-height: 26px;
-  border-bottom: 1px solid rgba(33, 38, 45, 0.4);
+  border-bottom: 1px solid var(--nd-log-entry-border);
 
   &:last-child { border-bottom: none; }
 }
@@ -1782,7 +1850,7 @@
   .tl-url {
     font-family: variables.$font-family-mono;
     font-size: variables.$font-size-xs;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     @include mixins.text-truncate;
     min-width: 0;
   }
@@ -1791,7 +1859,7 @@
 .timeline-track {
   flex: 1;
   height: 14px;
-  background: variables.$bg-elevated;
+  background: var(--nd-bg-elevated);
   border-radius: 2px;
   position: relative;
   overflow: hidden;
@@ -1822,7 +1890,7 @@
   text-align: right;
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-xs;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   padding-left: variables.$spacing-sm;
 }
 
@@ -1841,9 +1909,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px variables.$spacing-lg;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
   flex-shrink: 0;
-  background: variables.$bg-elevated;
+  background: var(--nd-bg-elevated);
 }
 
 .mock-title {
@@ -1852,7 +1920,7 @@
   gap: 6px;
   font-size: variables.$font-size-sm;
   font-weight: 600;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
 
   svg { color: variables.$accent-blue; }
 }
@@ -1864,7 +1932,7 @@
   align-items: center;
   justify-content: center;
   gap: variables.$spacing-sm;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   padding: variables.$spacing-xl;
   text-align: center;
 
@@ -1886,7 +1954,7 @@
 }
 
 .mock-rule {
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
 
   &:last-child { border-bottom: none; }
   &.disabled { opacity: 0.5; }
@@ -1907,7 +1975,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid variables.$border-default;
+  border: 1.5px solid var(--nd-border-default);
   background: transparent;
   flex-shrink: 0;
   transition: all variables.$transition-fast;
@@ -1921,7 +1989,7 @@
   }
 
   &:hover:not(.active) {
-    border-color: variables.$text-secondary;
+    border-color: var(--nd-text-secondary);
   }
 }
 
@@ -1929,7 +1997,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: variables.$text-muted;
+  background: var(--nd-text-muted);
   transition: background variables.$transition-fast;
 }
 
@@ -1944,7 +2012,7 @@
 .mock-rule-name {
   font-size: variables.$font-size-md;
   font-weight: 500;
-  color: variables.$text-primary;
+  color: var(--nd-text-primary);
   @include mixins.text-truncate;
 }
 
@@ -1964,14 +2032,14 @@
   text-transform: uppercase;
 
   &.method-badge { background: variables.$method-get-bg; color: variables.$method-get-text; }
-  &.status-badge { background: variables.$accent-blue-muted; color: variables.$accent-blue; }
-  &.delay-badge  { background: variables.$bg-overlay; color: variables.$text-muted; border: 1px solid variables.$border-color; }
+  &.status-badge { background: var(--nd-accent-blue-muted); color: variables.$accent-blue; }
+  &.delay-badge  { background: var(--nd-bg-overlay); color: var(--nd-text-muted); border: 1px solid var(--nd-border-color); }
 }
 
 .mock-url {
   font-family: variables.$font-family-mono;
   font-size: variables.$font-size-sm;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   @include mixins.text-truncate;
 }
 
@@ -1984,10 +2052,10 @@
 // ─── Mock form ────────────────────────────────────────────────────────────────
 
 .mock-form {
-  border-top: 1px solid variables.$border-color;
+  border-top: 1px solid var(--nd-border-color);
   display: flex;
   flex-direction: column;
-  background: variables.$bg-base;
+  background: var(--nd-bg-base);
   flex-shrink: 0;
 }
 
@@ -1996,11 +2064,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px variables.$spacing-lg;
-  background: variables.$bg-elevated;
-  border-bottom: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border-bottom: 1px solid var(--nd-border-color);
   font-size: variables.$font-size-sm;
   font-weight: 600;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
 }
 
 .mock-form-body {
@@ -2033,28 +2101,28 @@
   label {
     font-size: variables.$font-size-sm;
     font-weight: 500;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
   }
 }
 
 .form-hint {
   font-weight: 400;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-size: variables.$font-size-xs;
 }
 
 .form-input {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
-  color: variables.$text-primary;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
+  color: var(--nd-text-primary);
   padding: 5px 10px;
   border-radius: variables.$border-radius-md;
   font-size: variables.$font-size-md;
   font-family: variables.$font-family-mono;
   transition: border-color variables.$transition-fast;
 
-  &::placeholder { color: variables.$text-muted; }
-  &:focus { outline: none; border-color: variables.$accent-blue; background: variables.$bg-input; }
+  &::placeholder { color: var(--nd-text-muted); }
+  &:focus { outline: none; border-color: variables.$accent-blue; background: var(--nd-bg-input); }
 }
 
 .form-textarea {
@@ -2069,8 +2137,8 @@
   justify-content: flex-end;
   gap: variables.$spacing-sm;
   padding: 8px variables.$spacing-lg;
-  border-top: 1px solid variables.$border-color;
-  background: variables.$bg-elevated;
+  border-top: 1px solid var(--nd-border-color);
+  background: var(--nd-bg-elevated);
 }
 
 .form-btn {
@@ -2081,12 +2149,12 @@
   font-weight: 500;
   cursor: pointer;
   transition: all variables.$transition-fast;
-  border: 1px solid variables.$border-color;
+  border: 1px solid var(--nd-border-color);
 
   &.cancel {
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     background: transparent;
-    &:hover { background: variables.$bg-overlay; color: variables.$text-primary; }
+    &:hover { background: var(--nd-bg-overlay); color: var(--nd-text-primary); }
   }
 
   &.save {
@@ -2112,8 +2180,8 @@
 }
 
 .export-modal {
-  background: variables.$bg-elevated;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-elevated);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-xl;
   width: 380px;
   max-width: calc(100% - 40px);
@@ -2127,7 +2195,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px 12px;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid var(--nd-border-color);
 }
 
 .export-modal-title {
@@ -2136,13 +2204,13 @@
   gap: 7px;
   font-size: variables.$font-size-md;
   font-weight: 600;
-  color: variables.$text-primary;
+  color: var(--nd-text-primary);
 
   svg {
     width: 14px;
     height: 14px;
     stroke-width: 2;
-    color: variables.$text-muted;
+    color: var(--nd-text-muted);
   }
 }
 
@@ -2155,10 +2223,10 @@
   justify-content: center;
   font-size: 17px;
   line-height: 1;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   border-radius: variables.$border-radius-sm;
 
-  &:hover { color: variables.$text-primary; background: variables.$bg-hover; }
+  &:hover { color: var(--nd-text-primary); background: var(--nd-bg-hover); }
 }
 
 .export-modal-body {
@@ -2177,7 +2245,7 @@
 .export-section-label {
   font-size: variables.$font-size-sm;
   font-weight: 600;
-  color: variables.$text-secondary;
+  color: var(--nd-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   display: flex;
@@ -2199,8 +2267,8 @@
 // Format tabs
 .export-format-tabs {
   display: flex;
-  background: variables.$bg-overlay;
-  border: 1px solid variables.$border-color;
+  background: var(--nd-bg-overlay);
+  border: 1px solid var(--nd-border-color);
   border-radius: variables.$border-radius-md;
   padding: 2px;
   gap: 1px;
@@ -2211,11 +2279,11 @@
     padding: 4px 14px;
     font-size: variables.$font-size-sm;
     font-weight: 500;
-    color: variables.$text-secondary;
+    color: var(--nd-text-secondary);
     border-radius: variables.$border-radius-sm;
     transition: all variables.$transition-fast;
 
-    &:hover { color: variables.$text-primary; }
+    &:hover { color: var(--nd-text-primary); }
 
     &.active {
       background: variables.$accent-blue;
@@ -2253,7 +2321,7 @@
   padding: 1px 7px;
   border-radius: variables.$border-radius-sm;
 
-  &.http       { background: variables.$accent-blue-muted;    color: variables.$accent-blue; }
+  &.http       { background: var(--nd-accent-blue-muted);    color: variables.$accent-blue; }
   &.websocket  { background: rgba(163, 113, 247, 0.12);       color: #a371f7; }
   &.sse        { background: rgba(63, 185, 80, 0.12);         color: variables.$status-success; }
 }
@@ -2288,7 +2356,7 @@
   border-radius: variables.$border-radius-sm;
 
   &.success      { background: rgba(63, 185, 80, 0.12);  color: variables.$status-success; }
-  &.info         { background: variables.$accent-blue-muted; color: variables.$accent-blue; }
+  &.info         { background: var(--nd-accent-blue-muted); color: variables.$accent-blue; }
   &.client-error { background: rgba(210, 153, 34, 0.12); color: variables.$status-client-error; }
   &.server-error { background: rgba(248, 81, 73, 0.10);  color: variables.$status-server-error; }
 }
@@ -2304,7 +2372,7 @@
 .export-slider-track {
   position: relative;
   height: 4px;
-  background: variables.$bg-overlay;
+  background: var(--nd-bg-overlay);
   border-radius: 2px;
   margin: 8px 0;
   cursor: pointer;
@@ -2327,7 +2395,7 @@
   height: 14px;
   border-radius: 50%;
   background: variables.$accent-blue;
-  border: 2px solid variables.$bg-elevated;
+  border: 2px solid var(--nd-bg-elevated);
   box-shadow: 0 0 0 1px variables.$accent-blue;
   cursor: ew-resize;
   z-index: 2;
@@ -2343,13 +2411,13 @@
   justify-content: space-between;
   font-size: variables.$font-size-xs;
   font-family: variables.$font-family-mono;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
 }
 
 // Footer
 .export-modal-footer {
   padding: 12px 16px 14px;
-  border-top: 1px solid variables.$border-color;
+  border-top: 1px solid var(--nd-border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2357,7 +2425,7 @@
 
 .export-count {
   font-size: variables.$font-size-sm;
-  color: variables.$text-muted;
+  color: var(--nd-text-muted);
   font-family: variables.$font-family-mono;
 }
 
