@@ -656,75 +656,6 @@ defineExpose({
           </div>
 
           <div class="header-right">
-            <!-- Grouping toggle -->
-            <button
-              :class="['btn-icon-label', { active: grouped }]"
-              title="Group by endpoint"
-              @click="grouped = !grouped"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="2" y="7" width="20" height="14" rx="2"/>
-                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                <line x1="12" y1="12" x2="12" y2="16"/>
-                <line x1="10" y1="14" x2="14" y2="14"/>
-              </svg>
-              Group
-            </button>
-
-            <!-- Diff mode toggle -->
-            <button
-              :class="['btn-icon-label', { active: diffMode }]"
-              :title="diffMode ? `Diff mode on — ${diffSet.size}/2 selected (click to exit)` : 'Enable diff mode to compare two requests'"
-              @click="toggleDiffMode"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
-              </svg>
-              <template v-if="diffMode">{{ diffSet.size }}/2</template>
-              <template v-else>Diff</template>
-            </button>
-
-            <div class="header-divider" />
-
-            <!-- Import HAR -->
-            <button class="btn-icon-label" title="Import HAR file" @click.stop="triggerImport">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              Import
-            </button>
-            <input
-              ref="fileInputRef"
-              type="file"
-              accept=".har,.json"
-              style="display:none"
-              @change="onFileSelected"
-            />
-
-            <!-- Export -->
-            <button class="btn-icon-label" title="Export logs" @click.stop="showExportModal = true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Export
-            </button>
-
-            <!-- Clear -->
-            <button class="btn-icon danger" title="Clear logs" @click="handleClearLogs">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
-              </svg>
-            </button>
-
-            <div class="header-divider" />
-
             <!-- Theme toggle -->
             <button
               class="btn-icon"
@@ -814,8 +745,80 @@ defineExpose({
           </button>
         </div>
 
-        <!-- Filter Bar — только для вкладки Logs -->
+        <!-- Logs sub-toolbar -->
         <template v-if="activeTab === 'logs'">
+          <div class="logs-toolbar">
+            <!-- Grouping toggle -->
+            <button
+              :class="['btn-icon-label', { active: grouped }]"
+              title="Group by endpoint"
+              @click="grouped = !grouped"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                <line x1="12" y1="12" x2="12" y2="16"/>
+                <line x1="10" y1="14" x2="14" y2="14"/>
+              </svg>
+              Group
+            </button>
+
+            <!-- Diff mode toggle -->
+            <button
+              :class="['btn-icon-label', { active: diffMode }]"
+              :title="diffMode ? `Diff mode on — ${diffSet.size}/2 selected (click to exit)` : 'Enable diff mode to compare two requests'"
+              @click="toggleDiffMode"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+              </svg>
+              <template v-if="diffMode">{{ diffSet.size }}/2</template>
+              <template v-else>Diff</template>
+            </button>
+
+            <div class="logs-toolbar-divider" />
+
+            <!-- Import HAR -->
+            <button class="btn-icon-label" title="Import HAR file" @click.stop="triggerImport">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Import
+            </button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".har,.json"
+              style="display:none"
+              @change="onFileSelected"
+            />
+
+            <!-- Export -->
+            <button class="btn-icon-label" title="Export logs" @click.stop="showExportModal = true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export
+            </button>
+
+            <div class="logs-toolbar-spacer" />
+
+            <!-- Clear -->
+            <button class="btn-icon-label danger" title="Clear logs" @click="handleClearLogs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+              Clear
+            </button>
+          </div>
+
           <FilterBar v-model:filters="filters" :logs="sourceLogs" />
 
           <!-- Import banner -->

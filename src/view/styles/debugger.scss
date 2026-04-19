@@ -270,6 +270,11 @@
     background: rgba(88, 166, 255, 0.12);
     color: variables.$accent-blue;
   }
+
+  &.danger:hover {
+    background: variables.$error-bg;
+    color: variables.$error-text;
+  }
 }
 
 .header-divider {
@@ -362,6 +367,30 @@
       border-bottom-color: variables.$accent-blue;
     }
   }
+}
+
+// ─── Logs sub-toolbar ─────────────────────────────────────────────────────────
+
+.logs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 variables.$spacing-md;
+  height: 34px;
+  background: var(--nd-bg-surface);
+  border-bottom: 1px solid var(--nd-border-color);
+  flex-shrink: 0;
+}
+
+.logs-toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--nd-border-color);
+  margin: 0 4px;
+}
+
+.logs-toolbar-spacer {
+  flex: 1;
 }
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
