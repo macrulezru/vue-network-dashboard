@@ -21,6 +21,9 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
   - [Hotkey Configuration](#hotkey-configuration)
   - [Pending Requests](#pending-requests)
   - [Mock Mode](#mock-mode)
+  - [Mock Groups](#mock-groups)
+  - [Mock Config Import / Export](#mock-config-import--export)
+  - [Session Compare](#session-compare)
   - [Diff View](#diff-view)
   - [Waterfall Timeline](#waterfall-timeline)
   - [Grouping](#grouping)
@@ -63,6 +66,8 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 | **Zero Configuration** | Works immediately after `app.use()` with sensible defaults |
 | **Highly Configurable** | Extensive options for interceptor selection, URL filtering, sanitization, callbacks, and UI behaviour |
 | **Pending Requests** | In-flight requests appear as live entries and update in place on completion — just like browser DevTools |
+| **Mock Groups** | Organise mock rules into named groups — enable/disable a whole group at once, collapse/expand, rename inline, import/export as JSON |
+| **Session Compare** | Load two HAR files side by side and see an instant diff — added, removed, and changed requests with per-field deltas |
 | **Mock Mode** | Define URL/method rules to intercept requests and return custom responses without touching the backend |
 | **HAR Export** | Export session as an HTTP Archive file — open directly in Chrome DevTools, Postman, or Charles Proxy |
 | **Waterfall Timeline** | Visual bar chart of all requests on a shared time axis |
@@ -361,10 +366,10 @@ Pending entries are excluded from HAR export and the waterfall timeline.
 
 ### Mock Mode
 
-Create rules in the UI (**Mocks** tab) or programmatically:
+Create rules in the UI (**Mocks** tab) or programmatically. The legacy flat API still works and proxies into a built-in `default` group:
 
 ```ts
-const { addMock, removeMock, getMocks } = useNetworkDashboard()
+const { addMock, removeMock } = useNetworkDashboard()
 
 const rule = addMock({
   name: 'Mock /api/users',
@@ -378,11 +383,109 @@ const rule = addMock({
   }
 })
 
-// Later
 removeMock(rule.id)
 ```
 
 Mocked responses are logged normally with a **mock** badge and `metadata.mocked = true`, so you can tell at a glance which entries were intercepted. Both Fetch and XHR are supported.
+
+### Mock Groups
+
+Rules can be organised into **named groups**. Each group has its own enable/disable toggle — turning a group off suspends all its rules without losing their individual enabled states. Groups are collapsible; double-clicking a group name renames it inline.
+
+```ts
+const {
+  addMockGroup,
+  renameMockGroup,
+  toggleMockGroup,
+  removeMockGroup,
+  addMockToGroup,
+  updateMockInGroup,
+  removeMockFromGroup,
+  mockGroups,           // Ref<readonly MockRulesGroup[]>
+} = useNetworkDashboard()
+
+// Create a group
+const groupId = addMockGroup('Auth mocks')
+
+// Add a rule to it
+addMockToGroup(groupId, {
+  urlPattern: '/api/refresh',
+  method: 'POST',
+  response: {
+    status: 401,
+    body: { error: 'token_expired' },
+    delay: 300,
+  }
+})
+
+// Disable the whole group (individual rule states are preserved)
+toggleMockGroup(groupId, false)
+
+// Rename
+renameMockGroup(groupId, 'Auth & Session')
+
+// Remove
+removeMockGroup(groupId)
+```
+
+In the UI, clicking **+** in a group header opens an inline add/edit form directly within that group. Groups are persisted to `localStorage` under `vue-network-dashboard:mockGroups` when `persistToStorage` is enabled.
+
+### Mock Config Import / Export
+
+The **Mocks** toolbar has **Import** and **Export** buttons.
+
+**Export** serialises all groups and rules to a JSON file (`mock-config.json`):
+
+```json
+{
+  "version": 1,
+  "groups": [
+    {
+      "id": "grp_a1b2c3",
+      "name": "Auth mocks",
+      "enabled": true,
+      "rules": [
+        {
+          "id": "rule_x7y8z9",
+          "urlPattern": "/api/refresh",
+          "method": "POST",
+          "enabled": true,
+          "response": { "status": 401, "body": { "error": "token_expired" }, "delay": 300 }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Import** reads the file and calls `replaceMockGroups()`, which replaces the entire configuration atomically — no ID conflicts, predictable behaviour.
+
+```ts
+// Programmatic replacement
+const { replaceMockGroups } = useNetworkDashboard()
+replaceMockGroups(parsedGroups)
+```
+
+Typical use-cases: switching between pre-built scenario files (happy path, auth errors, backend down), sharing a mock set with teammates, or loading a prepared configuration for a demo without touching the server.
+
+### Session Compare
+
+The **Compare** tab lets you load two HAR files and see an instant diff of the recorded sessions.
+
+```
+Session A (before.har)            Session B (after.har)
+──────────────────────────────────────────────────────
+= GET  /api/users      200 42ms   = GET  /api/users     200  87ms  +45ms
+~ POST /api/orders     200 130ms  ~ POST /api/orders     500        ← changed
++ GET  /api/products              + GET  /api/products   200 55ms   added
+- DELETE /api/cart     204 18ms                                     removed
+```
+
+Matching is done on the composite key `METHOD URL`. For entries present in both sessions the tool compares HTTP status, duration, and response size — a difference greater than 20 % is flagged as **changed**.
+
+Filter chips above the list let you show only **Added**, **Removed**, **Changed**, or **Unchanged** entries. Each side shows the session filename and entry count in the column header.
+
+Both drag-and-drop and click-to-select file loading are supported. HAR files exported by the plugin itself are accepted directly.
 
 ### Diff View
 
@@ -667,6 +770,7 @@ All methods below are available on the object returned by `useNetworkDashboard()
 | `averageDuration` | `Ref<number>` | Mean duration in milliseconds |
 | `totalDataSent` | `Ref<number>` | Sum of `request.bodySize` across all entries |
 | `totalDataReceived` | `Ref<number>` | Sum of `response.bodySize` across all entries |
+| `mockGroups` | `Ref<readonly MockRulesGroup[]>` | All mock groups with their rules |
 
 ### Control methods
 
@@ -729,6 +833,29 @@ const unsubscribe = subscribe((entry: UnifiedLogEntry) => {
 })
 
 unsubscribe()  // stop receiving events
+```
+
+### Mock methods
+
+```typescript
+// Legacy flat API (proxied into the default group)
+addMock(rule): MockRule
+removeMock(id: string): void
+getMocks(): MockRule[]
+
+// Group management
+addMockGroup(name: string): string              // returns groupId
+renameMockGroup(groupId: string, name: string): void
+toggleMockGroup(groupId: string, enabled: boolean): void
+removeMockGroup(groupId: string): void
+
+// Rules within a group
+addMockToGroup(groupId: string, rule: Partial<MockRule>): MockRule
+updateMockInGroup(groupId: string, ruleId: string, patch: Partial<MockRule>): void
+removeMockFromGroup(groupId: string, ruleId: string): void
+
+// Bulk replace (used by import)
+replaceMockGroups(groups: MockRulesGroup[]): void
 ```
 
 ---
@@ -1030,7 +1157,8 @@ vue-network-dashboard/
 │   │   │   ├── LogEntry.vue         # Single row — pending state, mocked badge, diff select
 │   │   │   ├── FilterBar.vue        # Type tabs, URL, body, method, status, duration filters
 │   │   │   ├── StatsPanel.vue       # Live statistics with distribution bars
-│   │   │   ├── MockPanel.vue        # Mock rule editor (add / edit / toggle / delete)
+│   │   │   ├── MockPanel.vue           # Mock rule editor — groups, inline form, import/export
+│   │   │   ├── SessionComparePanel.vue # HAR diff view — two sessions side by side
 │   │   │   ├── NetworkTimeline.vue  # Waterfall bar chart
 │   │   │   └── DiffPanel.vue        # LCS-based header and body diff between two log entries
 │   │   ├── composables/
