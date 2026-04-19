@@ -94,15 +94,11 @@ export class SSEInterceptor {
    * Wrap EventSource instance with logging
    */
   private wrapEventSource = (es: EventSource, url: string): void => {
-    // Check if should log this connection
-    if (this.options.shouldLog && !this.options.shouldLog(url)) {
-      return
-    }
+    if (this.options.shouldLog && !this.options.shouldLog(url)) return
 
     const startTime = Date.now()
     const connectionId = generateId()
 
-    // Create context for this EventSource
     const context: SSELogContext = {
       id: connectionId,
       url,
@@ -113,37 +109,55 @@ export class SSEInterceptor {
 
     this.activeSources.set(es, context)
 
-    // Log connection attempt
+    // Override addEventListener to intercept named events that user code registers.
+    // Built-in types are handled separately; every NEW type gets a logging listener added.
+    const builtinTypes = new Set(['open', 'message', 'error', 'close'])
+    const hookedTypes  = new Set<string>()
+    const originalAdd  = es.addEventListener.bind(es)
+
+    const self = this
+    ;(es as any).addEventListener = function(
+      type: string,
+      listener: EventListenerOrEventListenerObject | null,
+      options?: boolean | AddEventListenerOptions
+    ) {
+      if (!builtinTypes.has(type) && !hookedTypes.has(type) && listener !== null) {
+        hookedTypes.add(type)
+        originalAdd(type, (event: Event) => {
+          if (event instanceof MessageEvent) {
+            self.logMessage(es, context, event, type)
+          }
+        })
+      }
+      return originalAdd(type, listener as EventListenerOrEventListenerObject, options)
+    }
+
     this.logConnection(es, context)
-
-    // Attach event listeners
-    this.attachEventListeners(es, context)
-
-    // Intercept close method for manual close
+    this.attachEventListeners(es, context, originalAdd)
     this.interceptClose(es, context)
   }
 
   /**
-   * Attach event listeners to EventSource
+   * Attach standard event listeners (open / message / error / close)
    */
-  private attachEventListeners = (es: EventSource, context: SSELogContext): void => {
-    // Open event
-    es.addEventListener('open', () => {
+  private attachEventListeners = (
+    es: EventSource,
+    context: SSELogContext,
+    add: EventSource['addEventListener']
+  ): void => {
+    add('open', () => {
       this.logOpen(es, context)
     })
 
-    // Message event (default event)
-    es.addEventListener('message', (event: MessageEvent) => {
-      this.logMessage(es, context, event, null)
+    add('message', (event: Event) => {
+      this.logMessage(es, context, event as MessageEvent, null)
     })
 
-    // Error event
-    es.addEventListener('error', (event: Event) => {
+    add('error', (event: Event) => {
       this.logError(es, context, event)
     })
 
-    // Close event (when connection is closed by server)
-    es.addEventListener('close', () => {
+    add('close', () => {
       this.logClose(es, context)
     })
   }

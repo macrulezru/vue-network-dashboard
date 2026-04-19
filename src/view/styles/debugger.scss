@@ -1249,7 +1249,7 @@
 
 .dist-item {
   display: grid;
-  grid-template-columns: 72px 36px 1fr 44px;
+  grid-template-columns: 100px 36px 1fr 44px;
   align-items: center;
   gap: variables.$spacing-sm;
   padding: 7px variables.$spacing-md;
@@ -1319,7 +1319,7 @@
 
 .perf-item {
   display: grid;
-  grid-template-columns: 62px 1fr 72px;
+  grid-template-columns: 100px 1fr 72px;
   align-items: center;
   gap: variables.$spacing-sm;
   padding: 7px variables.$spacing-md;
@@ -1900,8 +1900,7 @@
   height: 100%;
   overflow-y: auto;
   @include mixins.custom-scrollbar;
-  display: flex;
-  flex-direction: column;
+  position: relative;
 }
 
 .mock-toolbar {
@@ -1910,8 +1909,10 @@
   justify-content: space-between;
   padding: 8px variables.$spacing-lg;
   border-bottom: 1px solid var(--nd-border-color);
-  flex-shrink: 0;
   background: var(--nd-bg-elevated);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .mock-title {
@@ -1964,7 +1965,21 @@
   display: flex;
   align-items: center;
   gap: variables.$spacing-sm;
-  padding: 8px variables.$spacing-md;
+  padding: 8px variables.$spacing-md 8px 47px;
+}
+
+.mock-group-toggle-btn {
+  @include mixins.button-reset;
+  width: 30px;
+  height: 32px;
+}
+
+.mock-group-toggle-icon {
+  fill: var(--nd-text-muted);
+}
+
+.mock-group-toggle-icon.active {
+  fill: #3fb950;
 }
 
 .mock-toggle-btn {
@@ -2166,6 +2181,150 @@
   }
 }
 
+// ─── Mock groups layout ───────────────────────────────────────────────────────
+
+.mock-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mock-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.mock-group {
+  border: 1px solid var(--nd-border-default);
+  border-radius: variables.$border-radius-lg;
+  overflow: hidden;
+}
+
+.mock-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--nd-bg-surface);
+  cursor: default;
+
+  &.disabled { opacity: 0.6; }
+}
+
+.mock-group-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.mock-group-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.mock-group-name {
+  font-weight: 600;
+  font-size: variables.$font-size-md;
+  cursor: default;
+  @include mixins.text-truncate;
+
+  &:hover { color: var(--nd-text-primary); }
+}
+
+.mock-group-name-input {
+  font-weight: 600;
+  font-size: variables.$font-size-md;
+  background: var(--nd-bg-input);
+  border: 1px solid variables.$accent-blue;
+  border-radius: variables.$border-radius-sm;
+  color: var(--nd-text-primary);
+  padding: 1px 6px;
+  outline: none;
+  min-width: 0;
+  max-width: 180px;
+}
+
+.mock-group-count {
+  color: var(--nd-text-secondary);
+  font-size: variables.$font-size-sm;
+  flex-shrink: 0;
+}
+
+.expand-btn {
+  padding: 0.25rem;
+  flex-shrink: 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s ease;
+  }
+}
+
+.mock-group-rules {
+  border-top: 1px solid var(--nd-border-default);
+}
+
+.mock-empty-small {
+  padding: 1rem;
+  text-align: center;
+  color: var(--nd-text-secondary);
+  font-size: variables.$font-size-sm;
+}
+
+.mock-form-inline {
+  border-top: 2px solid variables.$accent-blue;
+}
+
+// ─── Mock panel inline UX ─────────────────────────────────────────────────────
+
+// Инлайн-карточка создания новой группы
+.new-group-card {
+  border-color: variables.$accent-blue;
+}
+
+.new-group-card-inner {
+  padding: variables.$spacing-sm variables.$spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: variables.$spacing-sm;
+  background: var(--nd-bg-surface);
+}
+
+.new-group-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: variables.$spacing-sm;
+}
+
+// Инлайн-подтверждение удаления группы (заменяет шапку)
+.mock-group-delete-confirm {
+  background: rgba(248, 81, 73, 0.08);
+  border-color: variables.$status-server-error;
+  gap: variables.$spacing-sm;
+}
+
+.mp-confirm-text {
+  font-size: variables.$font-size-sm;
+  color: var(--nd-text-primary);
+  flex: 1;
+  min-width: 0;
+
+  strong { font-weight: 600; }
+}
+
+.form-btn.danger {
+  background: variables.$status-server-error;
+  border-color: variables.$status-server-error;
+  color: #fff;
+  &:hover { filter: brightness(0.88); }
+}
+
 // ─── Export Modal ─────────────────────────────────────────────────────────────
 
 .export-modal-overlay {
@@ -2322,7 +2481,7 @@
   border-radius: variables.$border-radius-sm;
 
   &.http       { background: var(--nd-accent-blue-muted);    color: variables.$accent-blue; }
-  &.websocket  { background: rgba(163, 113, 247, 0.12);       color: #a371f7; }
+  &.websocket  { background: rgba(163, 113, 247, 0.12);       color: variables.$accent-purple; }
   &.sse        { background: rgba(63, 185, 80, 0.12);         color: variables.$status-success; }
 }
 
@@ -2446,4 +2605,387 @@
 
   &:hover { background: #3d8ef0; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// ─── Session Compare Panel ────────────────────────────────────────────────────
+
+.compare-panel {
+  height: 100%;
+  overflow-y: auto;
+  @include mixins.custom-scrollbar;
+  @include mixins.flex-column;
+}
+
+// ── Setup screen (no sessions loaded) ─────────────────────────────────────────
+
+.compare-setup {
+  flex: 1;
+  @include mixins.flex-column;
+  align-items: center;
+  justify-content: center;
+  gap: variables.$spacing-xl;
+  padding: variables.$spacing-xl;
+}
+
+.compare-hint {
+  font-size: variables.$font-size-lg;
+  color: var(--nd-text-secondary);
+  margin: 0;
+}
+
+.compare-slots {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacing-lg;
+  width: 100%;
+  max-width: 680px;
+}
+
+.compare-vs {
+  font-size: variables.$font-size-xl;
+  font-weight: 700;
+  color: var(--nd-text-muted);
+  flex-shrink: 0;
+}
+
+.compare-slot {
+  flex: 1;
+  min-height: 120px;
+  border: 2px dashed var(--nd-border-default);
+  border-radius: variables.$border-radius-lg;
+  background: var(--nd-bg-elevated);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color variables.$transition-fast, background variables.$transition-fast;
+
+  &:hover {
+    border-color: variables.$accent-blue;
+    background: var(--nd-bg-hover);
+  }
+
+  &.loaded {
+    border-style: solid;
+    border-color: variables.$success-text;
+    cursor: default;
+
+    &:hover { background: var(--nd-bg-elevated); }
+  }
+}
+
+.slot-empty {
+  @include mixins.flex-column;
+  align-items: center;
+  gap: 6px;
+  color: var(--nd-text-muted);
+  padding: variables.$spacing-lg;
+  text-align: center;
+  pointer-events: none;
+
+  svg { width: 28px; height: 28px; stroke-width: 1.5; opacity: 0.6; }
+  span { font-size: variables.$font-size-lg; font-weight: 500; color: var(--nd-text-secondary); }
+  small { font-size: variables.$font-size-sm; }
+}
+
+.slot-loaded {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacing-sm;
+  padding: variables.$spacing-md variables.$spacing-lg;
+  width: 100%;
+}
+
+.slot-ok-icon {
+  width: 18px; height: 18px;
+  stroke: variables.$success-text;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+.slot-info {
+  flex: 1;
+  @include mixins.flex-column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.slot-name {
+  font-size: variables.$font-size-md;
+  font-weight: 500;
+  color: var(--nd-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-count {
+  font-size: variables.$font-size-sm;
+  color: var(--nd-text-muted);
+  font-family: variables.$font-family-mono;
+}
+
+.slot-clear {
+  background: none;
+  border: none;
+  color: var(--nd-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: variables.$border-radius-sm;
+  flex-shrink: 0;
+
+  &:hover { color: variables.$error-text; background: var(--nd-bg-hover); }
+}
+
+// ── Diff toolbar ───────────────────────────────────────────────────────────────
+
+.compare-toolbar {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacing-xs;
+  padding: variables.$spacing-sm variables.$spacing-md;
+  border-bottom: 1px solid var(--nd-border-color);
+  background: var(--nd-bg-elevated);
+  flex-shrink: 0;
+}
+
+.cmp-filter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: variables.$border-radius-md;
+  background: none;
+  color: var(--nd-text-secondary);
+  font-size: variables.$font-size-md;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all variables.$transition-fast;
+
+  &:hover { background: var(--nd-bg-hover); color: var(--nd-text-primary); }
+
+  &.active {
+    background: var(--nd-bg-overlay);
+    color: var(--nd-text-primary);
+    border-color: var(--nd-border-default);
+  }
+
+  &.added.active   { color: variables.$success-text; border-color: rgba(variables.$success-text, 0.3); }
+  &.removed.active { color: variables.$error-text;   border-color: rgba(variables.$error-text, 0.3); }
+  &.changed.active { color: variables.$warning-text; border-color: rgba(variables.$warning-text, 0.3); }
+}
+
+.cmp-badge {
+  font-size: variables.$font-size-xs;
+  font-family: variables.$font-family-mono;
+  background: var(--nd-bg-base);
+  border-radius: 8px;
+  padding: 0 5px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.cmp-same-note {
+  font-size: variables.$font-size-sm;
+  color: var(--nd-text-muted);
+  margin-left: variables.$spacing-xs;
+}
+
+.cmp-reload {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--nd-border-default);
+  border-radius: variables.$border-radius-md;
+  background: none;
+  color: var(--nd-text-secondary);
+  font-size: variables.$font-size-md;
+  cursor: pointer;
+  transition: all variables.$transition-fast;
+
+  svg { width: 12px; height: 12px; stroke-width: 2; }
+  &:hover { background: var(--nd-bg-hover); color: var(--nd-text-primary); }
+}
+
+// ── Column headers ─────────────────────────────────────────────────────────────
+
+.cmp-cols-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--nd-border-color);
+  background: var(--nd-bg-elevated);
+  flex-shrink: 0;
+}
+
+.cmp-col-label {
+  display: flex;
+  align-items: center;
+  gap: variables.$spacing-sm;
+  padding: 6px variables.$spacing-md;
+  font-size: variables.$font-size-md;
+  font-weight: 500;
+  color: var(--nd-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  & + & { border-left: 1px solid var(--nd-border-color); }
+}
+
+.cmp-session-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  font-size: variables.$font-size-xs;
+  font-weight: 800;
+  flex-shrink: 0;
+
+  &.a { background: rgba(variables.$accent-blue,  0.15); color: variables.$accent-blue; }
+  &.b { background: rgba(variables.$accent-purple, 0.15); color: variables.$accent-purple; }
+}
+
+.cmp-session-count {
+  font-size: variables.$font-size-sm;
+  color: var(--nd-text-muted);
+  font-family: variables.$font-family-mono;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+// ── Side-by-side diff rows ─────────────────────────────────────────────────────
+
+.cmp-rows-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  @include mixins.custom-scrollbar;
+}
+
+.cmp-row {
+  display: grid;
+  grid-template-columns: 1fr 2px 1fr;
+  min-height: 30px;
+  border-bottom: 1px solid var(--nd-log-entry-border);
+  transition: background variables.$transition-fast;
+
+  &:hover { background: var(--nd-bg-hover); }
+}
+
+.cmp-divider {
+  background: var(--nd-border-color);
+  align-self: stretch;
+}
+
+.cmp-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px variables.$spacing-sm;
+  font-size: variables.$font-size-sm;
+  font-family: variables.$font-family-mono;
+  min-width: 0;
+
+  // B-side background tints by kind
+  &.side-added   { background: rgba(variables.$success-text, 0.06); }
+  &.side-changed { background: rgba(variables.$warning-text, 0.05); }
+
+  // Absent side (entry doesn't exist in this session)
+  &.side-absent {
+    background: var(--nd-bg-base);
+    opacity: 0.4;
+  }
+}
+
+.cmp-url {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--nd-text-primary);
+  min-width: 0;
+}
+
+.cmp-dur, .cmp-size {
+  color: var(--nd-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cmp-delta {
+  font-size: variables.$font-size-xs;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.side-empty-label {
+  color: var(--nd-text-muted);
+  font-style: italic;
+  font-size: variables.$font-size-sm;
+}
+
+// Highlighted value (changed field in session B)
+.val-changed {
+  background: rgba(variables.$warning-text, 0.18);
+  color: variables.$warning-text;
+  border-radius: 3px;
+  padding: 0 3px;
+  font-weight: 600;
+}
+
+// ── Shared ─────────────────────────────────────────────────────────────────────
+
+.kind-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px; height: 16px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &.added   { background: rgba(variables.$success-text, 0.15); color: variables.$success-text; }
+  &.removed { background: rgba(variables.$error-text,   0.15); color: variables.$error-text; }
+  &.changed { background: rgba(variables.$warning-text, 0.15); color: variables.$warning-text; }
+  &.same    { background: var(--nd-bg-elevated); color: var(--nd-text-muted); }
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: variables.$border-radius-sm;
+  font-size: variables.$font-size-xs;
+  font-weight: 600;
+  font-family: variables.$font-family-mono;
+  flex-shrink: 0;
+
+  &.sc-ok       { color: variables.$success-text; background: variables.$success-bg; }
+  &.sc-redirect { color: variables.$info-text;    background: variables.$info-bg; }
+  &.sc-client   { color: variables.$warning-text; background: variables.$warning-bg; }
+  &.sc-server   { color: variables.$error-text;   background: variables.$error-bg; }
+  &.sc-none     { color: var(--nd-text-muted); }
+
+  &.val-changed {
+    outline: 1px solid variables.$warning-text;
+    background: rgba(variables.$warning-text, 0.18);
+    color: variables.$warning-text;
+  }
+}
+
+.delta-better { color: variables.$success-text; }
+.delta-worse  { color: variables.$error-text; }
+
+.compare-empty {
+  text-align: center;
+  padding: variables.$spacing-xl;
+  color: var(--nd-text-muted);
+  font-family: variables.$font-family-base;
 }

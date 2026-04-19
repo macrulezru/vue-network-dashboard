@@ -69,6 +69,13 @@ export interface UnifiedLogEntry {
 }
 
 // ─── Mock rules ───────────────────────────────────────────────────────────────
+export interface MockRulesGroup {
+  id: string
+  name: string
+  enabled: boolean
+  rules?: MockRule[]
+  isOpened: boolean
+}
 
 export interface MockRule {
   id: string
