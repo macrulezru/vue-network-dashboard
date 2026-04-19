@@ -1,7 +1,7 @@
 import type { App, Ref, Plugin } from 'vue'
 import { computed, inject, ref, readonly } from 'vue'
 import { NetworkDashboard } from '../core/NetworkDashboard'
-import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats, MockRule } from '../core/types'
+import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats, MockRule, MockRulesGroup } from '../core/types'
 
 export interface VueNetworkDashboardInstance {
   logs: Ref<UnifiedLogEntry[]>
@@ -24,13 +24,27 @@ export interface VueNetworkDashboardInstance {
   getErrorLogs: () => UnifiedLogEntry[]
   queryLogs: (filters: any) => UnifiedLogEntry[]
   subscribe: (callback: (entry: UnifiedLogEntry) => void) => () => void
-  // Mock API
+  
+  // Mock groups API
+  mockGroups: Ref<readonly MockRulesGroup[]>
+  addMockGroup: (name: string) => MockRulesGroup
+  removeMockGroup: (groupId: string) => void
+  toggleMockGroup: (groupId: string, enabled: boolean) => void
+  expandMockGroup: (groupId: string, isOpened: boolean) => void
+  renameMockGroup: (groupId: string, name: string) => void
+  replaceMockGroups: (groups: MockRulesGroup[]) => void
+  addMockToGroup: (groupId: string, rule: Omit<MockRule, 'id'>) => MockRule
+  removeMockFromGroup: (groupId: string, ruleId: string) => void
+  updateMockInGroup: (groupId: string, ruleId: string, updates: Partial<Omit<MockRule, 'id'>>) => void
+  
+  // Legacy mock API (for backward compatibility)
   mocks: Ref<readonly MockRule[]>
   addMock: (rule: Omit<MockRule, 'id'>) => MockRule
   updateMock: (id: string, updates: Partial<Omit<MockRule, 'id'>>) => void
   removeMock: (id: string) => void
   clearMocks: () => void
-  getMocks: () => MockRule[] // для обратной совместимости
+  getMocks: () => MockRule[]
+  
   _logger: NetworkDashboard
 }
 
@@ -38,15 +52,18 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
   const logs = logger.getLogsRef()
   const stats = computed(() => logger.getStats())
   
-  const mocksRef = ref<MockRule[]>(logger.getMocks())
-  
-  const unsubscribe = logger.onMocksChange(() => {
-    mocksRef.value = logger.getMocks()
+  // Mock groups reactive state
+  const mockGroups = ref<readonly MockRulesGroup[]>(logger.getMockGroups())
+  const unsubscribeGroups = logger.onMockGroupsChange((groups) => {
+    mockGroups.value = groups
   })
+  
+  // Legacy mocks computed from groups
+  const mocks = computed(() => logger.getMocks())
   
   const originalDestroy = logger.destroy.bind(logger)
   logger.destroy = () => {
-    unsubscribe()
+    unsubscribeGroups()
     originalDestroy()
   }
   
@@ -71,12 +88,27 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
     getErrorLogs: () => logger.getErrorLogs(),
     queryLogs: (filters) => logger.queryLogs(filters),
     subscribe: (callback) => logger.subscribe(callback),
-    mocks: readonly(mocksRef) as Ref<readonly MockRule[]>,
+    
+    // Mock groups API
+    mockGroups: readonly(mockGroups) as Ref<readonly MockRulesGroup[]>,
+    addMockGroup: (name) => logger.addMockGroup(name),
+    removeMockGroup: (groupId) => logger.removeMockGroup(groupId),
+    toggleMockGroup: (groupId, enabled) => logger.toggleMockGroup(groupId, enabled),
+    expandMockGroup: (groupId, isOpened) => logger.expandMockGroup(groupId, isOpened),
+    renameMockGroup: (groupId, name) => logger.renameMockGroup(groupId, name),
+    replaceMockGroups: (groups) => logger.replaceMockGroups(groups),
+    addMockToGroup: (groupId, rule) => logger.addMockToGroup(groupId, rule),
+    removeMockFromGroup: (groupId, ruleId) => logger.removeMockFromGroup(groupId, ruleId),
+    updateMockInGroup: (groupId, ruleId, updates) => logger.updateMockInGroup(groupId, ruleId, updates),
+    
+    // Legacy mock API
+    mocks: readonly(mocks) as Ref<readonly MockRule[]>,
     addMock: (rule) => logger.addMock(rule),
     updateMock: (id, updates) => logger.updateMock(id, updates),
     removeMock: (id) => logger.removeMock(id),
     clearMocks: () => logger.clearMocks(),
     getMocks: () => logger.getMocks(),
+    
     _logger: logger
   }
 }
@@ -86,14 +118,11 @@ export const NetworkDashboardPlugin: Plugin = {
     const logger = new NetworkDashboard(options)
     const reactiveLogger = createReactiveLogger(logger)
 
-    // Provide to entire app
     app.provide('networkDashboard', reactiveLogger)
     app.provide('networkDashboardUi', options.ui ?? {})
 
-    // Add to global properties
     app.config.globalProperties.$networkDashboard = reactiveLogger
 
-    // Cleanup on app unmount
     const originalUnmount = app.unmount
     app.unmount = function() {
       logger.destroy()

@@ -11,6 +11,7 @@ import MockPanel from './MockPanel.vue'
 import NetworkTimeline from './NetworkTimeline.vue'
 import DiffPanel from './DiffPanel.vue'
 import ExportModal from './ExportModal.vue'
+import SessionComparePanel from './SessionComparePanel.vue'
 
 export interface NetworkDebuggerProps {
   defaultVisible?: boolean
@@ -231,7 +232,7 @@ const toggleGroup = (key: string) => {
 const stats = computed(() => dashboard.getStats())
 const isVisible = ref(props.defaultVisible)
 const isPinned = ref(props.defaultPinned)
-const activeTab = ref<'logs' | 'stats' | 'timeline' | 'mocks'>('logs')
+const activeTab = ref<'logs' | 'stats' | 'timeline' | 'mocks' | 'compare'>('logs')
 const expandedLogs = ref<Set<string>>(new Set())
 const showExportModal = ref(false)
 
@@ -791,22 +792,6 @@ defineExpose({
           </div>
         </div>
 
-        <!-- Filter Bar -->
-        <FilterBar v-model:filters="filters" :logs="sourceLogs" />
-
-        <!-- Import banner -->
-        <div v-if="importedLogs" class="import-banner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          Imported session
-          <span class="import-source">{{ importFileName }}</span>
-          <span class="import-count">{{ importedLogs.length }} entries</span>
-          <button class="import-clear" @click="clearImport">&times;</button>
-        </div>
-
         <!-- Tabs -->
         <div class="debugger-tabs">
           <button :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
@@ -824,7 +809,28 @@ defineExpose({
               {{ activeMocksCount }}
             </span>
           </button>
+          <button :class="{ active: activeTab === 'compare' }" @click="activeTab = 'compare'">
+            Compare
+          </button>
         </div>
+
+        <!-- Filter Bar — только для вкладки Logs -->
+        <template v-if="activeTab === 'logs'">
+          <FilterBar v-model:filters="filters" :logs="sourceLogs" />
+
+          <!-- Import banner -->
+          <div v-if="importedLogs" class="import-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Imported session
+            <span class="import-source">{{ importFileName }}</span>
+            <span class="import-count">{{ importedLogs.length }} entries</span>
+            <button class="import-clear" @click="clearImport">&times;</button>
+          </div>
+        </template>
 
         <!-- Content -->
         <div class="debugger-content">
@@ -912,6 +918,9 @@ defineExpose({
 
           <!-- ── Mocks ── -->
           <MockPanel v-else-if="activeTab === 'mocks'" />
+
+          <!-- ── Mocks ── -->
+          <SessionComparePanel v-else-if="activeTab === 'compare'" />
 
         </div>
 

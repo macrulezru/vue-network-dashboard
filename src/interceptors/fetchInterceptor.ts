@@ -13,8 +13,6 @@ export interface FetchInterceptorOptions {
 
 /**
  * Interceptor for Fetch API
- * Wraps global fetch to log all HTTP requests and responses.
- * Supports pending state (logs immediately, updates on completion) and mock rules.
  */
 export class FetchInterceptor {
   private originalFetch: typeof fetch
@@ -60,18 +58,15 @@ export class FetchInterceptor {
     const requestHeaders = this.extractRequestHeaders(config)
     const requestBody = this.extractRequestBody(config)
 
-    // Create the log entry that will live in the store for the lifetime of the request
     const logEntry = this.options.formatter.http.formatRequest({
       url, method, startTime, requestHeaders, requestBody, clientType: 'fetch'
     })
 
-    // Check for a matching mock rule before making the real request
     const mockRule = this.options.getMock?.(url, method) ?? null
     if (mockRule) {
       return this.handleMock(logEntry, mockRule, startTime)
     }
 
-    // Log as pending immediately so the UI shows it in-flight
     this.options.onLog({ ...logEntry, metadata: { ...logEntry.metadata, pending: true } })
 
     try {
@@ -90,7 +85,6 @@ export class FetchInterceptor {
         redirected: response.redirected
       })
 
-      // Update the pending entry in place
       if (this.options.onUpdateLog) {
         this.options.onUpdateLog(logEntry.id, { ...enrichedEntry, metadata: { ...enrichedEntry.metadata, pending: false } })
       } else {

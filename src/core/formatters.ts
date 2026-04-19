@@ -382,8 +382,10 @@ export class SSEFormatter {
       eventData = this.options.sanitizeBody(eventData)
     }
 
-    const eventDataRaw = typeof eventData === 'string' ? eventData : safeStringify(eventData)
-    const eventDataSize = calculateSize(eventData)
+    const eventDataRaw = eventData != null
+      ? (typeof eventData === 'string' ? eventData : safeStringify(eventData))
+      : null
+    const eventDataSize = eventData != null ? calculateSize(eventData) : null
 
     return {
       id,
@@ -409,15 +411,10 @@ export class SSEFormatter {
         bodyType: null
       },
       response: {
-        body: {
-          eventType: params.eventType,
-          data: eventData,
-          lastEventId: params.lastEventId,
-          readyState: params.readyState
-        },
+        body: eventData,
         bodyRaw: eventDataRaw,
         bodySize: eventDataSize,
-        bodyType: 'text/event-stream'
+        bodyType: eventData != null ? 'text/event-stream' : null
       },
       error: params.error || {
         occurred: false,

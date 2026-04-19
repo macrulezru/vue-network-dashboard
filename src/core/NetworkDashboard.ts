@@ -3,7 +3,8 @@ import type {
   UnifiedLogEntry,
   NetworkDashboardOptions,
   NetworkStats,
-  MockRule
+  MockRule,
+  MockRulesGroup
 } from './types'
 import { LogStore as LogStoreImpl } from '../store/logStore'
 import { LogFormatter } from './formatters'
@@ -22,6 +23,10 @@ import {
   sanitizeBody,
   getSanitizationRules
 } from '../utils/sanitizer'
+import { generateId } from '../utils/helpers'
+
+const DEFAULT_STORAGE_KEY = 'vue-network-dashboard'
+const DEFAULT_MOCK_GROUPS_KEY = 'vue-network-dashboard:mockGroups'
 
 /**
  * Main Network Logger class
@@ -38,8 +43,9 @@ export class NetworkDashboard {
   private isEnabled: boolean = false
   private isDev: boolean = false
   private saveStorageTimer: ReturnType<typeof setTimeout> | null = null
-  private mockRules: Map<string, MockRule> = new Map()
+  private mockGroups: MockRulesGroup[] = []
   private mockChangeCallbacks: Set<() => void> = new Set()
+  private mockGroupsChangeCallbacks: Set<(groups: MockRulesGroup[]) => void> = new Set()
   private currentRoute: string | undefined = undefined
   private routerUnsubscribe: (() => void) | null = null
 
@@ -76,8 +82,6 @@ export class NetworkDashboard {
     }
 
     // Check if in development mode.
-    // Use process.env.NODE_ENV so tests can control this at runtime,
-    // and so Vite replaces it correctly in app builds (dev → true, prod → false).
     this.isDev = (typeof process !== 'undefined' ? process.env['NODE_ENV'] : 'production') !== 'production'
 
     // Initialize store
@@ -93,6 +97,9 @@ export class NetworkDashboard {
         return sanitizeBody(body, sanitizationRules.sensitiveFields, sanitizationRules.maskFields)
       }
     })
+
+    // Load mock groups (with migration from old format)
+    this.loadMockGroups()
 
     // Load persisted logs if enabled
     if (this.options.persistToStorage) {
@@ -285,23 +292,205 @@ export class NetworkDashboard {
   }
 
   /**
-   * Find the first enabled mock rule that matches a request
+   * Find the first enabled mock rule from enabled groups that matches a request
    */
   private getMockForRequest = (url: string, method: string): MockRule | null => {
-    for (const rule of this.mockRules.values()) {
-      if (!rule.enabled) continue
-      if (rule.method && rule.method.toUpperCase() !== method.toUpperCase()) continue
-      const pattern = rule.urlPattern instanceof RegExp
-        ? rule.urlPattern
-        : new RegExp(rule.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      if (pattern.test(url)) return rule
+    for (const group of this.mockGroups) {
+      if (!group.enabled) continue
+      if (!group.rules) continue
+      for (const rule of group.rules) {
+        if (!rule.enabled) continue
+        if (rule.method && rule.method.toUpperCase() !== method.toUpperCase()) continue
+        const pattern = rule.urlPattern instanceof RegExp
+          ? rule.urlPattern
+          : new RegExp(rule.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        if (pattern.test(url)) return rule
+      }
     }
     return null
   }
 
+  // ─── Mock groups API ───────────────────────────────────────────────────────────
+
   /**
-   * Notify all subscribers about mock changes
+   * Get all mock groups
    */
+  public getMockGroups = (): MockRulesGroup[] => {
+    return [...this.mockGroups]
+  }
+
+  /**
+   * Add a new mock group
+   */
+  public addMockGroup = (name: string): MockRulesGroup => {
+    const group: MockRulesGroup = {
+      id: generateId(),
+      name,
+      enabled: true,
+      isOpened: true,
+      rules: []
+    }
+    this.mockGroups.push(group)
+    this.saveMockGroups()
+    this.notifyMockGroupsChange()
+    return group
+  }
+
+  /**
+   * Remove a mock group by id
+   */
+  public removeMockGroup = (groupId: string): void => {
+    const index = this.mockGroups.findIndex(g => g.id === groupId)
+    if (index !== -1) {
+      this.mockGroups.splice(index, 1)
+      this.saveMockGroups()
+      this.notifyMockGroupsChange()
+    }
+  }
+
+  /**
+   * Toggle a mock group on/off
+   */
+  public toggleMockGroup = (groupId: string, enabled: boolean): void => {
+    const group = this.mockGroups.find(g => g.id === groupId)
+    if (group) {
+      group.enabled = enabled
+      this.saveMockGroups()
+      this.notifyMockGroupsChange()
+    }
+  }
+
+  /**
+   * Expand/collapse a mock group
+   */
+  public expandMockGroup = (groupId: string, isOpened: boolean): void => {
+    const group = this.mockGroups.find(g => g.id === groupId)
+    if (group) {
+      group.isOpened = isOpened
+      this.saveMockGroups()
+      this.notifyMockGroupsChange()
+    }
+  }
+
+  /**
+   * Rename a mock group
+   */
+  public renameMockGroup = (groupId: string, name: string): void => {
+    const group = this.mockGroups.find(g => g.id === groupId)
+    if (group) {
+      group.name = name
+      this.saveMockGroups()
+      this.notifyMockGroupsChange()
+    }
+  }
+
+  /**
+   * Replace all mock groups (used for import)
+   */
+  public replaceMockGroups = (groups: MockRulesGroup[]): void => {
+    this.mockGroups = groups.map(g => ({
+      ...g,
+      rules: g.rules ?? []
+    }))
+    this.saveMockGroups()
+    this.notifyMockGroupsChange()
+  }
+  
+  /**
+   * Add a mock rule to a specific group
+   */
+  public addMockToGroup = (groupId: string, rule: Omit<MockRule, 'id'>): MockRule => {
+    const group = this.mockGroups.find(g => g.id === groupId)
+    if (!group) {
+      throw new Error(`Group "${groupId}" not found`)
+    }
+    const id = Math.random().toString(36).slice(2)
+    const fullRule: MockRule = { ...rule, id }
+    if (!group.rules) group.rules = []
+    group.rules.push(fullRule)
+    this.saveMockGroups()
+    this.notifyMockGroupsChange()
+    return fullRule
+  }
+
+  /**
+   * Remove a mock rule from its group
+   */
+  public removeMockFromGroup = (groupId: string, ruleId: string): void => {
+    const group = this.mockGroups.find(g => g.id === groupId)
+    if (group && group.rules) {
+      const index = group.rules.findIndex(r => r.id === ruleId)
+      if (index !== -1) {
+        group.rules.splice(index, 1)
+        this.saveMockGroups()
+        this.notifyMockGroupsChange()
+      }
+    }
+  }
+
+  /**
+   * Update a mock rule in its group
+   */
+  public updateMockInGroup = (
+    groupId: string,
+    ruleId: string,
+    updates: Partial<Omit<MockRule, 'id'>>
+  ): void => {
+    const group = this.mockGroups.find(g => g.id === groupId)
+    if (group && group.rules) {
+      const rule = group.rules.find(r => r.id === ruleId)
+      if (rule) {
+        Object.assign(rule, updates)
+        this.saveMockGroups()
+        this.notifyMockGroupsChange()
+      }
+    }
+  }
+
+  // ─── Legacy mock API (for backward compatibility) ──────────────────────────────
+
+  public addMock = (rule: Omit<MockRule, 'id'>): MockRule => {
+    return this.addMockToGroup('default', rule)
+  }
+
+  public updateMock = (id: string, updates: Partial<Omit<MockRule, 'id'>>): void => {
+    for (const group of this.mockGroups) {
+      const rule = group.rules?.find(r => r.id === id)
+      if (rule) {
+        Object.assign(rule, updates)
+        this.saveMockGroups()
+        this.notifyMockGroupsChange()
+        return
+      }
+    }
+  }
+
+  public removeMock = (id: string): void => {
+    for (const group of this.mockGroups) {
+      const index = group.rules?.findIndex(r => r.id === id) ?? -1
+      if (index !== -1 && group.rules) {
+        group.rules.splice(index, 1)
+        this.saveMockGroups()
+        this.notifyMockGroupsChange()
+        return
+      }
+    }
+  }
+
+  public clearMocks = (): void => {
+    for (const group of this.mockGroups) {
+      if (group.rules) group.rules = []
+    }
+    this.saveMockGroups()
+    this.notifyMockGroupsChange()
+  }
+
+  public getMocks = (): MockRule[] => {
+    return this.mockGroups.flatMap(g => g.rules || [])
+  }
+
+  // ─── Mock events ───────────────────────────────────────────────────────────────
+
   private notifyMocksChange = (): void => {
     this.mockChangeCallbacks.forEach(callback => {
       try {
@@ -312,11 +501,18 @@ export class NetworkDashboard {
     })
   }
 
-  /**
-   * Subscribe to mock changes
-   * @param callback - Function to call when mocks change
-   * @returns Unsubscribe function
-   */
+  private notifyMockGroupsChange = (): void => {
+    this.mockGroupsChangeCallbacks.forEach(callback => {
+      try {
+        callback(this.getMockGroups())
+      } catch (error) {
+        console.error('[NetworkDashboard] Mock groups change callback error:', error)
+      }
+    })
+    // Also notify legacy mock change subscribers
+    this.notifyMocksChange()
+  }
+
   public onMocksChange = (callback: () => void): () => void => {
     this.mockChangeCallbacks.add(callback)
     return () => {
@@ -324,47 +520,76 @@ export class NetworkDashboard {
     }
   }
 
-  // ─── Public mock API ───────────────────────────────────────────────────────────
-
-  public addMock = (rule: Omit<MockRule, 'id'>): MockRule => {
-    const id = Math.random().toString(36).slice(2)
-    const fullRule: MockRule = { ...rule, id }
-    this.mockRules.set(id, fullRule)
-    this.notifyMocksChange()
-    return fullRule
-  }
-
-  public updateMock = (id: string, updates: Partial<Omit<MockRule, 'id'>>): void => {
-    const rule = this.mockRules.get(id)
-    if (rule) {
-      this.mockRules.set(id, { ...rule, ...updates })
-      this.notifyMocksChange()
+  public onMockGroupsChange = (callback: (groups: MockRulesGroup[]) => void): () => void => {
+    this.mockGroupsChangeCallbacks.add(callback)
+    return () => {
+      this.mockGroupsChangeCallbacks.delete(callback)
     }
   }
 
-  public removeMock = (id: string): void => {
-    this.mockRules.delete(id)
-    this.notifyMocksChange()
+  // ─── Persistence ───────────────────────────────────────────────────────────────
+
+  private saveMockGroups = (): void => {
+    if (this.options.persistToStorage) {
+      try {
+        localStorage.setItem(DEFAULT_MOCK_GROUPS_KEY, JSON.stringify(this.mockGroups))
+      } catch (error) {
+        console.error('[NetworkDashboard] Failed to save mock groups:', error)
+      }
+    }
   }
 
-  public clearMocks = (): void => {
-    this.mockRules.clear()
-    this.notifyMocksChange()
+  private loadMockGroups = (): void => {
+    // Try to load from localStorage
+    if (this.options.persistToStorage) {
+      try {
+        const saved = localStorage.getItem(DEFAULT_MOCK_GROUPS_KEY)
+        if (saved) {
+          this.mockGroups = JSON.parse(saved)
+          // Ensure each group has rules array
+          for (const group of this.mockGroups) {
+            if (!group.rules) group.rules = []
+          }
+          return
+        }
+      } catch (error) {
+        console.error('[NetworkDashboard] Failed to load mock groups:', error)
+      }
+    }
+
+    // Migration from old mock format (single list)
+    const oldMocksKey = `${DEFAULT_STORAGE_KEY}:mocks`
+    try {
+      const oldMocks = localStorage.getItem(oldMocksKey)
+      if (oldMocks) {
+        const mocks = JSON.parse(oldMocks) as MockRule[]
+        if (mocks.length) {
+          this.mockGroups = [{
+            id: generateId(),
+            name: 'default',
+            enabled: true,
+            isOpened: true,
+            rules: mocks
+          }]
+          this.saveMockGroups()
+          localStorage.removeItem(oldMocksKey)
+          return
+        }
+      }
+    } catch (error) {
+      console.error('[NetworkDashboard] Failed to migrate old mocks:', error)
+    }
+
+    // Default: create a 'default' group
+    this.mockGroups = [{
+      id: generateId(),
+      name: 'default',
+      enabled: true,
+      isOpened: true,
+      rules: []
+    }]
   }
 
-  public getMocks = (): MockRule[] => {
-    return Array.from(this.mockRules.values())
-  }
-
-  // ─── Public updateLog ──────────────────────────────────────────────────────────
-
-  public updateLog = (id: string, updates: Partial<UnifiedLogEntry>): void => {
-    this.store.updateLog(id, updates)
-  }
-
-  /**
-   * Save logs to localStorage (debounced — max once per 500ms)
-   */
   private saveToStorage = (): void => {
     if (this.saveStorageTimer !== null) {
       clearTimeout(this.saveStorageTimer)
@@ -373,24 +598,19 @@ export class NetworkDashboard {
       this.saveStorageTimer = null
       try {
         const logs = this.store.getLogs()
-        // Only save last 100 logs to avoid storage limits
         const toSave = logs.slice(0, 100)
-        localStorage.setItem('vue-network-dashboard', JSON.stringify(toSave))
+        localStorage.setItem(DEFAULT_STORAGE_KEY, JSON.stringify(toSave))
       } catch (error) {
         console.error('[NetworkDashboard] Failed to save to storage:', error)
       }
     }, 500)
   }
 
-  /**
-   * Load logs from localStorage
-   */
   private loadFromStorage = (): void => {
     try {
-      const saved = localStorage.getItem('vue-network-dashboard')
+      const saved = localStorage.getItem(DEFAULT_STORAGE_KEY)
       if (saved) {
         const logs = JSON.parse(saved) as UnifiedLogEntry[]
-        // Restore logs in reverse order to maintain chronology
         logs.reverse().forEach(log => {
           this.store.addLog(log)
         })
@@ -398,6 +618,12 @@ export class NetworkDashboard {
     } catch (error) {
       console.error('[NetworkDashboard] Failed to load from storage:', error)
     }
+  }
+
+  // ─── Public updateLog ──────────────────────────────────────────────────────────
+
+  public updateLog = (id: string, updates: Partial<UnifiedLogEntry>): void => {
+    this.store.updateLog(id, updates)
   }
 
   /**
@@ -411,7 +637,7 @@ export class NetworkDashboard {
         clearTimeout(this.saveStorageTimer)
         this.saveStorageTimer = null
       }
-      localStorage.removeItem('vue-network-dashboard')
+      localStorage.removeItem(DEFAULT_STORAGE_KEY)
     }
     if (this.options.callbacks?.onFlush) {
       try {
@@ -569,12 +795,10 @@ export class NetworkDashboard {
   public updateOptions = (options: Partial<NetworkDashboardOptions>): void => {
     const wasEnabled = this.isEnabled
     
-    // Disable if currently enabled
     if (wasEnabled) {
       this.disable()
     }
     
-    // Merge options
     this.options = {
       ...this.options,
       ...options,
@@ -600,7 +824,6 @@ export class NetworkDashboard {
       }
     }
     
-    // Update formatter with new sanitization rules
     const sanitizationRules = getSanitizationRules(this.options.sanitization)
     this.formatter.updateOptions({
       sanitizeHeaders: (headers: Record<string, string>) => {
@@ -611,7 +834,6 @@ export class NetworkDashboard {
       }
     })
     
-    // Re-enable if it was enabled
     if (wasEnabled) {
       this.enable()
     }
@@ -631,11 +853,12 @@ export class NetworkDashboard {
     this.disable()
     this.clear()
     this.mockChangeCallbacks.clear()
+    this.mockGroupsChangeCallbacks.clear()
     this.routerUnsubscribe?.()
     this.routerUnsubscribe = null
     
     if (this.options.persistToStorage) {
-      localStorage.removeItem('vue-network-dashboard')
+      localStorage.removeItem(DEFAULT_STORAGE_KEY)
     }
   }
 }

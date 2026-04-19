@@ -382,8 +382,8 @@ const toggleDiff = (e: MouseEvent) => {
           </div>
         </div>
 
-        <!-- Response body -->
-        <div v-if="hasBody(log.response.body)" class="details-section">
+        <!-- Response body (только HTTP) -->
+        <div v-if="log.type === 'http' && hasBody(log.response.body)" class="details-section">
           <div class="section-header">
             <span>Body <small style="font-weight:400;text-transform:none;letter-spacing:0">({{ formatBytes(log.response.bodySize || 0) }})</small></span>
             <button class="copy-btn" @click.stop="copyToClipboard(log.response.body)">
