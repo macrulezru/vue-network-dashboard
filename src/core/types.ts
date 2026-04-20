@@ -85,6 +85,18 @@ export interface MockRule {
   urlPattern: string | RegExp
   /** If omitted, matches any HTTP method */
   method?: string
+  /** 'mock' replaces the response entirely; 'transform' modifies the real response. Default: 'mock' */
+  mode?: 'mock' | 'transform'
+  /** Optional additional match conditions — all must pass */
+  conditions?: {
+    /** URL query params that must be present with these values */
+    queryParams?: Record<string, string>
+    /** Request headers that must be present with these values (case-insensitive) */
+    headers?: Record<string, string>
+    /** Request body JSON fields that must match (top-level only) */
+    bodyFields?: Record<string, unknown>
+  }
+  /** Used when mode === 'mock' */
   response: {
     status: number
     statusText?: string
@@ -92,6 +104,17 @@ export interface MockRule {
     body?: unknown
     /** Artificial delay in milliseconds before responding */
     delay?: number
+  }
+  /** Used when mode === 'transform' — applied to the real response */
+  transform?: {
+    /** Override HTTP status code */
+    status?: number
+    /** Headers to add or override */
+    headers?: Record<string, string>
+    /** JSON fields to merge into the response body */
+    bodyMerge?: Record<string, unknown>
+    /** Top-level JSON fields to remove from the response body */
+    bodyDelete?: string[]
   }
 }
 
@@ -197,6 +220,32 @@ export interface LogStore {
   isEmpty(): boolean
   prune(keepCount: number): void
   pruneOlderThan(timestamp: number): void
+}
+
+// ─── Breakpoints ──────────────────────────────────────────────────────────────
+
+export interface BreakpointRule {
+  id: string
+  name?: string
+  enabled: boolean
+  urlPattern: string | RegExp
+  method?: string
+}
+
+export interface ActiveBreakpoint {
+  id: string
+  url: string
+  method: string
+  requestHeaders: Record<string, string>
+  requestBody: unknown
+  timestamp: number
+}
+
+export interface BreakpointEdits {
+  url: string
+  method: string
+  headers: Record<string, string>
+  body: string | null
 }
 
 export interface SanitizationRules {

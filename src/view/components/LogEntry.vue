@@ -10,11 +10,14 @@ const props = defineProps<{
   diffSelected?: boolean
   diffMode?: boolean
   urlFilter?: string
+  duplicateCount?: number
 }>()
 
 const emit = defineEmits<{
   toggleDetails: [id: string]
   toggleDiff: [id: string]
+  createMock: [log: UnifiedLogEntry]
+  openReplay: [log: UnifiedLogEntry]
 }>()
 
 const detailTab = ref<'request' | 'response' | 'meta'>('request')
@@ -145,24 +148,21 @@ const copyAsCurl = async () => {
   await navigator.clipboard.writeText(parts.join(' \\\n'))
 }
 
-// ── Replay ─────────────────────────────────────────────────────────────────────
-const replayRequest = async () => {
-  const headers: Record<string, string> = {}
-  for (const [k, v] of Object.entries(props.log.requestHeaders)) {
-    if (!SKIP_CURL_HEADERS.has(k.toLowerCase())) headers[k] = v
+// ── GraphQL detection ──────────────────────────────────────────────────────────
+const gqlInfo = computed(() => {
+  if (props.log.type !== 'http' || props.log.method !== 'POST') return null
+  const body = props.log.request.body
+  if (!body || typeof body !== 'object') return null
+  if (typeof body.query !== 'string') return null
+  const q = (body.query as string).trim()
+  const opMatch = q.match(/^(query|mutation|subscription)\s+(\w+)/)
+  return {
+    operationType: opMatch?.[1] ?? (q.startsWith('mutation') ? 'mutation' : q.startsWith('subscription') ? 'subscription' : 'query'),
+    operationName: opMatch?.[2] ?? body.operationName ?? null,
+    variables: body.variables ?? null,
+    extensions: body.extensions ?? null,
   }
-  try {
-    await fetch(props.log.url, {
-      method: props.log.method,
-      headers,
-      ...(props.log.request.body != null ? {
-        body: typeof props.log.request.body === 'string'
-          ? props.log.request.body
-          : JSON.stringify(props.log.request.body)
-      } : {})
-    })
-  } catch { /* captured by interceptor */ }
-}
+})
 
 const isPending = computed(() => props.log.metadata?.pending === true)
 const isMocked  = computed(() => props.log.metadata?.mocked === true)
@@ -201,6 +201,12 @@ const toggleDiff = (e: MouseEvent) => {
         </template>
         <template v-else>{{ log.url }}</template>
         <span v-if="isMocked" class="mocked-badge">mock</span>
+        <span v-if="gqlInfo" class="gql-badge" :title="gqlInfo.operationType">
+          {{ gqlInfo.operationName ?? 'GraphQL' }}
+        </span>
+        <span v-if="duplicateCount && duplicateCount > 1" class="n1-badge" :title="`Sent ${duplicateCount} times — possible N+1`">
+          ×{{ duplicateCount }}
+        </span>
       </span>
 
       <!-- Status -->
@@ -261,18 +267,51 @@ const toggleDiff = (e: MouseEvent) => {
             </svg>
             cURL
           </button>
-          <button class="copy-btn" title="Replay request" @click.stop="replayRequest">
+          <button class="copy-btn" title="Edit and replay request" @click.stop="emit('openReplay', log)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <polyline points="1 4 1 10 7 10"/>
               <path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
             </svg>
             Replay
           </button>
+          <button class="copy-btn" title="Create mock from this response" @click.stop="emit('createMock', log)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Mock
+          </button>
         </div>
       </div>
 
       <!-- ── REQUEST tab ── -->
       <div v-if="detailTab === 'request'" class="details-pane">
+
+        <!-- GraphQL info -->
+        <div v-if="gqlInfo" class="details-section gql-section">
+          <div class="section-header">
+            <span>GraphQL</span>
+            <span class="gql-op-type">{{ gqlInfo.operationType }}</span>
+          </div>
+          <div class="kv-table">
+            <div class="kv-row">
+              <span class="kv-key">Operation</span>
+              <span class="kv-val">{{ gqlInfo.operationName ?? '(anonymous)' }}</span>
+            </div>
+          </div>
+          <div v-if="gqlInfo.variables" class="gql-sub">
+            <div class="section-header" style="margin-top:0.5rem">
+              <span>Variables</span>
+              <button class="copy-btn" @click.stop="copyToClipboard(gqlInfo.variables)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-block">{{ formatJSON(gqlInfo.variables) }}</pre>
+          </div>
+        </div>
 
         <!-- Request headers -->
         <div class="details-section">

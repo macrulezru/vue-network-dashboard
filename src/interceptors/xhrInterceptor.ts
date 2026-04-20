@@ -5,7 +5,8 @@ import { getContentType, parseHeaders } from '../utils/helpers'
 export interface XHRInterceptorOptions {
   onLog: (entry: UnifiedLogEntry) => void
   onUpdateLog?: (id: string, updates: Partial<UnifiedLogEntry>) => void
-  getMock?: (url: string, method: string) => MockRule | null
+  getMock?: (url: string, method: string, body?: unknown, headers?: Record<string, string>) => MockRule | null
+  getThrottleDelay?: () => number
   formatter: LogFormatter
   shouldLog?: (url: string, method: string) => boolean
 }
@@ -114,7 +115,7 @@ export class XHRInterceptor {
       clientType: 'xhr'
     })
 
-    const mockRule = this.options.getMock?.(url, method) ?? null
+    const mockRule = this.options.getMock?.(url, method, requestBody, requestHeaders) ?? null
     if (mockRule) {
       this.handleMock(logEntry, mockRule, startTime)
       return
@@ -132,7 +133,12 @@ export class XHRInterceptor {
 
     this.activeRequests.set(xhr, context)
     this.options.onLog({ ...logEntry, metadata: { ...logEntry.metadata, pending: true } })
-    this.attachEventListeners(xhr, context)
+    const throttle = this.options.getThrottleDelay?.() ?? 0
+    if (throttle > 0) {
+      setTimeout(() => this.attachEventListeners(xhr, context), throttle)
+    } else {
+      this.attachEventListeners(xhr, context)
+    }
   }
 
   private handleMock = (

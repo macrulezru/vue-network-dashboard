@@ -30,7 +30,15 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
   - [Virtual Scroll](#virtual-scroll)
   - [URL Highlight](#url-highlight)
   - [Copy as cURL](#copy-as-curl)
-  - [Replay Request](#replay-request)
+  - [Replay with Editing](#replay-with-editing)
+  - [Mock from Log](#mock-from-log)
+  - [Mock Conditions](#mock-conditions)
+  - [Response Transform](#response-transform)
+  - [Network Throttling](#network-throttling)
+  - [GraphQL Detection](#graphql-detection)
+  - [N+1 Detection](#n1-detection)
+  - [Breakpoints](#breakpoints)
+  - [OpenAPI Import](#openapi-import)
   - [HAR Import](#har-import)
   - [Filter Persistence](#filter-persistence)
   - [WebSocket Message Filter](#websocket-message-filter)
@@ -82,7 +90,15 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 | **Filtered Export** | Export modal with format selector (JSON / CSV / HAR), protocol checkboxes, status checkboxes, and dual time-range slider |
 | **HAR Import** | Load any `.har` file into the debugger to inspect a recorded session; live traffic is paused while a file is active |
 | **Copy as cURL** | One-click copy of any HTTP request as a ready-to-run `curl` command (with headers and body) |
-| **Replay** | Re-send any HTTP request from the detail panel; the response is captured as a new log entry |
+| **Replay with Editing** | Edit URL, method, headers, and body before re-sending any request — JSON body is validated inline |
+| **Mock from Log** | One-click mock creation from any captured response — rule is pre-filled with URL, method, status, and body |
+| **Mock Conditions** | Add fine-grained match conditions to a mock rule: query params, request headers, and body fields (all AND-combined) |
+| **Response Transform** | Modify real responses on the fly without a full mock — override status, merge/delete JSON body fields, add headers |
+| **Network Throttling** | Simulate slow connections with built-in presets (Fast 3G / Slow 3G / Offline-ish); delay applied per request via a getter, no interceptor restart needed |
+| **GraphQL Detection** | Automatically detects GraphQL operations in POST requests; shows operation type, name, and variables in a dedicated section with a colour badge |
+| **N+1 Detection** | Highlights duplicate requests to the same URL+method within a 5-second window with an orange ×N badge |
+| **Breakpoints** | Pause any outgoing request before it is sent — inspect and edit URL, method, headers, and body — then release or cancel |
+| **OpenAPI Import** | Load an OpenAPI 3.x or Swagger 2.x JSON spec to auto-generate a full set of mock rules from all `paths` |
 | **Virtual Scroll** | Log list renders at most 100 rows; additional rows load incrementally on scroll via `IntersectionObserver` |
 | **WebSocket Message Filter** | When the WS type filter is active, a toggle hides connection/open/close events and shows only `message` entries |
 | **Traffic Sparkline** | Statistics tab shows a live SVG sparkline of request volume over time (5-second buckets, last ~3 min) |
@@ -515,9 +531,178 @@ While a URL filter is active, the matched substring (or regex capture) is highli
 
 Open any HTTP request's detail view and click **cURL** to copy the full request as a `curl` command to the clipboard. The command includes the method, all non-redundant headers, and the request body. Common internal headers (`host`, `content-length`, `transfer-encoding`, `connection`, `keep-alive`) are omitted automatically.
 
-### Replay Request
+### Replay with Editing
 
-Click **Replay** in an HTTP request's detail view to re-send the request with the original method, headers, and body. The response is captured by the interceptor and appears as a new log entry, so you can compare it with the original side-by-side using Diff view.
+Click **Replay** in an HTTP request's detail view to open the **Edit & Replay** modal. Before sending you can change the URL, HTTP method, add or remove individual headers, and edit the JSON body. Invalid JSON is highlighted with a warning. The response is captured by the interceptor and appears as a new log entry, so you can compare it with the original using Diff view.
+
+### Mock from Log
+
+In the detail view of any captured HTTP request, click **Mock** to create a mock rule pre-filled with the URL path, method, status code, and response body from that log entry. The Mocks tab opens automatically with the new rule ready to edit or enable.
+
+### Mock Conditions
+
+Mock rules can be narrowed with additional match conditions beyond URL and method. Add conditions in the rule editor under the **Conditions** section:
+
+```typescript
+interface MockRule {
+  // ...
+  conditions?: {
+    queryParams?: Record<string, string>   // URL ?key=value pairs (all must match)
+    headers?:     Record<string, string>   // Request header values (all must match)
+    bodyFields?:  Record<string, unknown>  // JSON body field values (all must match)
+  }
+}
+```
+
+All conditions within a rule are AND-combined. For example, route the same `POST /api/search` to different mock responses depending on a field in the request body:
+
+```typescript
+// Returns search results for user queries
+dashboard.addMock({
+  urlPattern: '/api/search', method: 'POST',
+  conditions: { bodyFields: { type: 'user' } },
+  response: { status: 200, body: { items: [{ id: 1, name: 'Alice' }] } },
+})
+
+// Returns empty list for product queries
+dashboard.addMock({
+  urlPattern: '/api/search', method: 'POST',
+  conditions: { bodyFields: { type: 'product' } },
+  response: { status: 200, body: { items: [] } },
+})
+```
+
+### Response Transform
+
+Transform mode lets you modify a real server response without replacing it entirely. The request goes to the actual backend; after the response arrives the interceptor applies the declared transforms and returns the modified `Response` to your app. The log entry is marked **mock** to indicate the response was altered.
+
+```typescript
+interface MockRule {
+  mode?: 'mock' | 'transform'  // default: 'mock'
+  transform?: {
+    status?:     number                     // Override HTTP status code
+    headers?:    Record<string, string>     // Add or overwrite response headers
+    bodyMerge?:  Record<string, unknown>    // Deep-merge fields into JSON body
+    bodyDelete?: string[]                   // Remove fields from JSON body
+  }
+}
+```
+
+Example — inject an `isAdmin` flag and remove an internal field:
+
+```typescript
+dashboard.addMock({
+  urlPattern: '/api/me',
+  method: 'GET',
+  mode: 'transform',
+  enabled: true,
+  response: { status: 200 },  // required field; ignored in transform mode
+  transform: {
+    bodyMerge:  { isAdmin: true, beta: true },
+    bodyDelete: ['internalId'],
+  },
+})
+```
+
+In the UI, switch between **Mock** and **Transform** using the mode toggle in the rule editor — the visible form fields update accordingly.
+
+### Network Throttling
+
+Simulate slow or unreliable connections using the throttle selector in the **Logs** toolbar:
+
+| Preset      | Added latency |
+|-------------|---------------|
+| No throttle | 0 ms          |
+| Fast 3G     | 400 ms        |
+| Slow 3G     | 2 000 ms      |
+| Offline-ish | 5 000 ms      |
+
+The delay is applied per request via a getter that the interceptor reads immediately before each call — switching presets takes effect on the next request without restarting or re-registering interceptors.
+
+### GraphQL Detection
+
+When a `POST` request contains a JSON body with a `query` string field, the dashboard automatically treats it as a GraphQL operation. A **purple badge** with the operation name appears in the log list row:
+
+```
+[POST] /graphql  [query GetUser]  200  142ms
+```
+
+The expanded detail view gains a **GraphQL** section showing:
+- Operation type (`query`, `mutation`, or `subscription`)
+- Operation name (from the query string or `operationName` field)
+- Variables (parsed from `body.variables`)
+
+No external GraphQL library is required.
+
+### N+1 Detection
+
+If more than one request with the same HTTP method and URL appears within a 5-second window, an orange **×N** badge is shown on each matching row in the log list. The count updates reactively as requests arrive or leave the window — no timers or polling are used.
+
+This makes it easy to spot N+1 patterns such as a list component that fires one detail request per item.
+
+### Breakpoints
+
+Breakpoints pause outgoing requests before they are sent, letting you inspect and modify every field — then decide whether to release or cancel.
+
+```
+┌─────────────────────────────────────────────────┐
+│ ● POST  /api/checkout            14:32:07       │
+│                                                   │
+│ URL      [https://api.example/checkout]           │
+│ Method   [POST                  ]                 │
+│ Headers  Authorization: Bearer eyJ...             │
+│          Content-Type: application/json           │
+│ Body     { "items": [{ "id": 1 }] }               │
+│                                                   │
+│  [Cancel request]                   [▶ Release]   │
+└─────────────────────────────────────────────────┘
+```
+
+**Adding rules programmatically:**
+
+```typescript
+const dashboard = useNetworkDashboard()
+
+dashboard.addBreakpointRule({
+  urlPattern: '/api/checkout',  // substring or /regex/
+  method: 'POST',               // omit to match any method
+  name: 'Pause checkout',
+  enabled: true,
+})
+```
+
+**Managing paused requests:**
+
+```typescript
+// Release with optional edits (url, method, headers, body)
+dashboard.releaseBreakpoint(id, { url, method, headers, body })
+
+// Cancel — throws AbortError in the calling code
+dashboard.cancelBreakpoint(id)
+```
+
+**Reactive state:**
+
+```typescript
+const { breakpointRules, activeBreakpoints } = useNetworkDashboard()
+// breakpointRules — Ref<BreakpointRule[]>
+// activeBreakpoints — Ref<ActiveBreakpoint[]> (currently paused)
+```
+
+The number of paused requests is shown as a badge on the **Breakpoints** tab. Rules can be added, edited (inline, replacing the row), toggled, and deleted from the UI.
+
+### OpenAPI Import
+
+Click **OpenAPI** in the **Mocks** toolbar to load an OpenAPI 3.x or Swagger 2.x JSON spec file. The parser generates one mock rule per `path + method` combination, builds an example response body from the schema, and adds all rules to a new group named after `info.title`.
+
+```typescript
+// Example: load the Petstore spec → creates ~18 mock rules in one click
+// All rules are added to a group: "Swagger Petstore"
+```
+
+The generated rules use `mode: 'mock'` with status `200` and a body derived from the first successful response schema. `$ref` references are resolved automatically. No external dependencies — the parser is ~120 lines of TypeScript.
+
+After import, rules can be enabled individually, edited, or exported as a JSON config file like any other mock group.
 
 ### HAR Import
 
@@ -771,6 +956,8 @@ All methods below are available on the object returned by `useNetworkDashboard()
 | `totalDataSent` | `Ref<number>` | Sum of `request.bodySize` across all entries |
 | `totalDataReceived` | `Ref<number>` | Sum of `response.bodySize` across all entries |
 | `mockGroups` | `Ref<readonly MockRulesGroup[]>` | All mock groups with their rules |
+| `breakpointRules` | `Ref<BreakpointRule[]>` | All configured breakpoint rules |
+| `activeBreakpoints` | `Ref<ActiveBreakpoint[]>` | Requests currently paused at a breakpoint |
 
 ### Control methods
 
@@ -856,6 +1043,59 @@ removeMockFromGroup(groupId: string, ruleId: string): void
 
 // Bulk replace (used by import)
 replaceMockGroups(groups: MockRulesGroup[]): void
+```
+
+### Throttle methods
+
+```typescript
+setThrottle(preset: 'none' | 'fast3g' | 'slow3g' | 'offline'): void
+getThrottleDelay(): number   // current delay in milliseconds
+```
+
+### Breakpoint methods
+
+```typescript
+// Rule management
+addBreakpointRule(rule: Omit<BreakpointRule, 'id'>): BreakpointRule
+removeBreakpointRule(id: string): void
+updateBreakpointRule(id: string, patch: Partial<BreakpointRule>): void
+getBreakpointRules(): BreakpointRule[]
+
+// Controlling paused requests
+releaseBreakpoint(id: string, edits: BreakpointEdits): void
+cancelBreakpoint(id: string): void   // throws AbortError in the caller
+getActiveBreakpoints(): ActiveBreakpoint[]
+
+// Subscribe to changes in the paused set
+onActiveBreakpointsChange(cb: (list: ActiveBreakpoint[]) => void): () => void
+```
+
+**Types:**
+
+```typescript
+interface BreakpointRule {
+  id: string
+  urlPattern: string | RegExp
+  method?: string    // e.g. 'POST'; omit to match any method
+  name?: string
+  enabled: boolean
+}
+
+interface ActiveBreakpoint {
+  id: string
+  url: string
+  method: string
+  requestHeaders: Record<string, string>
+  requestBody: unknown
+  timestamp: number
+}
+
+interface BreakpointEdits {
+  url: string
+  method: string
+  headers: Record<string, string>
+  body: string | null
+}
 ```
 
 ---
@@ -1132,9 +1372,10 @@ interface NetworkStats {
 vue-network-dashboard/
 ├── src/
 │   ├── core/
-│   │   ├── NetworkDashboard.ts      # Orchestrator — interceptors, mock registry, lifecycle
+│   │   ├── NetworkDashboard.ts      # Orchestrator — interceptors, mock registry, breakpoints, lifecycle
 │   │   ├── formatters.ts            # HTTPFormatter, WebSocketFormatter, SSEFormatter
-│   │   └── types.ts                 # UnifiedLogEntry, NetworkDashboardOptions, MockRule, NetworkStats
+│   │   ├── openApiParser.ts         # Parses OpenAPI 3.x / Swagger 2.x JSON → MockRule[]
+│   │   └── types.ts                 # UnifiedLogEntry, MockRule, BreakpointRule, NetworkStats, …
 │   ├── interceptors/
 │   │   ├── fetchInterceptor.ts      # Patches window.fetch (pending state + mock support)
 │   │   ├── xhrInterceptor.ts        # Patches XMLHttpRequest prototype (WeakMap + mock support)
@@ -1157,7 +1398,9 @@ vue-network-dashboard/
 │   │   │   ├── LogEntry.vue         # Single row — pending state, mocked badge, diff select
 │   │   │   ├── FilterBar.vue        # Type tabs, URL, body, method, status, duration filters
 │   │   │   ├── StatsPanel.vue       # Live statistics with distribution bars
-│   │   │   ├── MockPanel.vue           # Mock rule editor — groups, inline form, import/export
+│   │   │   ├── MockPanel.vue           # Mock rule editor — groups, conditions, transform, OpenAPI import
+│   │   │   ├── BreakpointPanel.vue     # Breakpoint rules + paused-request cards with editable fields
+│   │   │   ├── ReplayModal.vue         # Edit & Replay modal — URL, method, headers, body
 │   │   │   ├── SessionComparePanel.vue # HAR diff view — two sessions side by side
 │   │   │   ├── NetworkTimeline.vue  # Waterfall bar chart
 │   │   │   └── DiffPanel.vue        # LCS-based header and body diff between two log entries
