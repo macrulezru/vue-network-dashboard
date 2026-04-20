@@ -19,6 +19,15 @@
       </div>
     </div>
 
+    <div class="button-group">
+      <h3>GraphQL Requests</h3>
+      <div class="buttons">
+        <button class="btn-gql" @click="gqlGetUser">query GetUser</button>
+        <button class="btn-gql" @click="gqlGetPosts">query GetPosts</button>
+        <button class="btn-gql" @click="gqlCreatePost">mutation CreatePost</button>
+      </div>
+    </div>
+
     <div class="status-area" v-if="lastResponse">
       <h3>Last Response</h3>
       <pre class="response-preview">{{ lastResponse }}</pre>
@@ -111,6 +120,37 @@ const updatePost = async () => {
   }
 }
 
+const gql = async (operationName: string, query: string, variables?: Record<string, unknown>) => {
+  try {
+    const response = await fetch('/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, operationName, variables })
+    })
+    const data = await response.json()
+    lastResponse.value = JSON.stringify(data, null, 2)
+  } catch (error) {
+    lastResponse.value = `Error: ${error}`
+  }
+}
+
+const gqlGetUser = () => gql(
+  'GetUser',
+  'query GetUser($id: ID!) { user(id: $id) { id name email role } }',
+  { id: '1' }
+)
+
+const gqlGetPosts = () => gql(
+  'GetPosts',
+  'query GetPosts { posts { id title body author { name } } }'
+)
+
+const gqlCreatePost = () => gql(
+  'CreatePost',
+  'mutation CreatePost($input: PostInput!) { createPost(input: $input) { id title } }',
+  { input: { title: 'Hello GraphQL', body: 'Demo mutation' } }
+)
+
 const deletePost = async () => {
   try {
     const response = await fetch('https://jsonplaceholder.typicode.com/posts/1', {
@@ -147,7 +187,8 @@ const deletePost = async () => {
 .btn-get,
 .btn-post,
 .btn-put,
-.btn-delete {
+.btn-delete,
+.btn-gql {
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
@@ -194,6 +235,16 @@ const deletePost = async () => {
   &:hover {
     background: #b91c1c;
     color: #fee2e2;
+  }
+}
+
+.btn-gql {
+  background: #3b1f6e;
+  color: #c4b5fd;
+
+  &:hover {
+    background: #4c2889;
+    color: #ddd6fe;
   }
 }
 

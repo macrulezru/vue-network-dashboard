@@ -1,7 +1,7 @@
 import type { App, Ref, Plugin } from 'vue'
 import { computed, inject, ref, readonly } from 'vue'
 import { NetworkDashboard } from '../core/NetworkDashboard'
-import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats, MockRule, MockRulesGroup } from '../core/types'
+import type { NetworkDashboardOptions, UnifiedLogEntry, NetworkStats, MockRule, MockRulesGroup, BreakpointRule, ActiveBreakpoint, BreakpointEdits } from '../core/types'
 
 export interface VueNetworkDashboardInstance {
   logs: Ref<UnifiedLogEntry[]>
@@ -37,6 +37,19 @@ export interface VueNetworkDashboardInstance {
   removeMockFromGroup: (groupId: string, ruleId: string) => void
   updateMockInGroup: (groupId: string, ruleId: string, updates: Partial<Omit<MockRule, 'id'>>) => void
   
+  // Throttling
+  setThrottle: (delayMs: number) => void
+  getThrottle: () => number
+
+  // Breakpoints
+  breakpointRules: Ref<BreakpointRule[]>
+  activeBreakpoints: Ref<ActiveBreakpoint[]>
+  addBreakpointRule: (rule: Omit<BreakpointRule, 'id'>) => BreakpointRule
+  removeBreakpointRule: (id: string) => void
+  updateBreakpointRule: (id: string, updates: Partial<Omit<BreakpointRule, 'id'>>) => void
+  releaseBreakpoint: (id: string, edits: BreakpointEdits) => void
+  cancelBreakpoint: (id: string) => void
+
   // Legacy mock API (for backward compatibility)
   mocks: Ref<readonly MockRule[]>
   addMock: (rule: Omit<MockRule, 'id'>) => MockRule
@@ -52,6 +65,13 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
   const logs = logger.getLogsRef()
   const stats = computed(() => logger.getStats())
   
+  // Breakpoint reactive state
+  const breakpointRules = ref<BreakpointRule[]>(logger.getBreakpointRules())
+  const activeBreakpoints = ref<ActiveBreakpoint[]>(logger.getActiveBreakpoints())
+  const unsubscribeBreakpoints = logger.onActiveBreakpointsChange((bps) => {
+    activeBreakpoints.value = bps
+  })
+
   // Mock groups reactive state
   const mockGroups = ref<readonly MockRulesGroup[]>(logger.getMockGroups())
   const unsubscribeGroups = logger.onMockGroupsChange((groups) => {
@@ -64,6 +84,7 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
   const originalDestroy = logger.destroy.bind(logger)
   logger.destroy = () => {
     unsubscribeGroups()
+    unsubscribeBreakpoints()
     originalDestroy()
   }
   
@@ -108,7 +129,28 @@ const createReactiveLogger = (logger: NetworkDashboard): VueNetworkDashboardInst
     removeMock: (id) => logger.removeMock(id),
     clearMocks: () => logger.clearMocks(),
     getMocks: () => logger.getMocks(),
-    
+
+    setThrottle: (delayMs) => logger.setThrottle(delayMs),
+    getThrottle: () => logger.getThrottle(),
+
+    breakpointRules,
+    activeBreakpoints,
+    addBreakpointRule: (rule) => {
+      const added = logger.addBreakpointRule(rule)
+      breakpointRules.value = logger.getBreakpointRules()
+      return added
+    },
+    removeBreakpointRule: (id) => {
+      logger.removeBreakpointRule(id)
+      breakpointRules.value = logger.getBreakpointRules()
+    },
+    updateBreakpointRule: (id, updates) => {
+      logger.updateBreakpointRule(id, updates)
+      breakpointRules.value = logger.getBreakpointRules()
+    },
+    releaseBreakpoint: (id, edits) => logger.releaseBreakpoint(id, edits),
+    cancelBreakpoint: (id) => logger.cancelBreakpoint(id),
+
     _logger: logger
   }
 }

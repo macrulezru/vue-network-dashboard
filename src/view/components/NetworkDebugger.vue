@@ -12,6 +12,8 @@ import NetworkTimeline from './NetworkTimeline.vue'
 import DiffPanel from './DiffPanel.vue'
 import ExportModal from './ExportModal.vue'
 import SessionComparePanel from './SessionComparePanel.vue'
+import ReplayModal from './ReplayModal.vue'
+import BreakpointPanel from './BreakpointPanel.vue'
 
 export interface NetworkDebuggerProps {
   defaultVisible?: boolean
@@ -232,12 +234,85 @@ const toggleGroup = (key: string) => {
 const stats = computed(() => dashboard.getStats())
 const isVisible = ref(props.defaultVisible)
 const isPinned = ref(props.defaultPinned)
-const activeTab = ref<'logs' | 'stats' | 'timeline' | 'mocks' | 'compare'>('logs')
+const activeTab = ref<'logs' | 'stats' | 'timeline' | 'mocks' | 'compare' | 'breakpoints'>('logs')
 const expandedLogs = ref<Set<string>>(new Set())
 const showExportModal = ref(false)
 
 const hasErrors = computed(() => dashboard.totalErrors.value > 0)
 const pendingCount = computed(() => logs.value.filter(l => l.metadata?.pending).length)
+
+// ── N+1 detection ──────────────────────────────────────────────────────────────
+const N1_WINDOW_MS = 5000
+const duplicateCounts = computed((): Map<string, number> => {
+  const map = new Map<string, number>()
+  const now = Date.now()
+  for (const log of filteredLogs.value) {
+    if (log.type !== 'http' || log.metadata?.pending) continue
+    if (now - log.startTime > N1_WINDOW_MS) continue
+    const key = `${log.method}::${log.url}`
+    map.set(key, (map.get(key) ?? 0) + 1)
+  }
+  return map
+})
+
+const getDuplicateCount = (log: UnifiedLogEntry): number => {
+  const key = `${log.method}::${log.url}`
+  return duplicateCounts.value.get(key) ?? 1
+}
+
+// ── Replay modal ───────────────────────────────────────────────────────────────
+const showReplayModal = ref(false)
+const replayLog = ref<UnifiedLogEntry | null>(null)
+
+const openReplayModal = (log: UnifiedLogEntry) => {
+  replayLog.value = log
+  showReplayModal.value = true
+}
+
+// ── Throttling UI ─────────────────────────────────────────────────────────────
+const THROTTLE_PRESETS = [
+  { label: 'No throttle', ms: 0 },
+  { label: 'Fast 3G',     ms: 400 },
+  { label: 'Slow 3G',     ms: 2000 },
+  { label: 'Offline-ish', ms: 5000 },
+] as const
+
+const throttleMs = ref(0)
+const setThrottlePreset = (ms: number) => {
+  throttleMs.value = ms
+  dashboard.setThrottle(ms)
+}
+
+// ── Replay handler ─────────────────────────────────────────────────────────────
+const handleReplay = async (req: { url: string; method: string; headers: Record<string, string>; body: string | null }) => {
+  showReplayModal.value = false
+  try {
+    await fetch(req.url, {
+      method: req.method,
+      headers: req.headers,
+      ...(req.body != null ? { body: req.body } : {})
+    })
+  } catch { /* captured by interceptor */ }
+}
+
+// ── Mock from log ──────────────────────────────────────────────────────────────
+const createMockFromLog = (log: UnifiedLogEntry) => {
+  const groups = dashboard.mockGroups.value
+  const defaultGroup = groups.find(g => g.name === 'default') ?? groups[0]
+  if (!defaultGroup) return
+  dashboard.addMockToGroup(defaultGroup.id, {
+    name: `${log.method} ${new URL(log.url, location.href).pathname}`,
+    urlPattern: new URL(log.url, location.href).pathname,
+    method: log.method,
+    enabled: true,
+    response: {
+      status: log.http?.status ?? 200,
+      body: log.response.body ?? null,
+      headers: log.responseHeaders,
+    }
+  })
+  activeTab.value = 'mocks'
+}
 
 // ── Diff selection ─────────────────────────────────────────────────────────────
 const diffMode = ref(false)
@@ -740,6 +815,12 @@ defineExpose({
               {{ activeMocksCount }}
             </span>
           </button>
+          <button :class="{ active: activeTab === 'breakpoints' }" @click="activeTab = 'breakpoints'">
+            Breakpoints
+            <span v-if="dashboard.activeBreakpoints.value.length" class="tab-badge tab-badge-warn">
+              {{ dashboard.activeBreakpoints.value.length }}
+            </span>
+          </button>
           <button :class="{ active: activeTab === 'compare' }" @click="activeTab = 'compare'">
             Compare
           </button>
@@ -804,6 +885,19 @@ defineExpose({
               </svg>
               Export
             </button>
+
+            <div class="logs-toolbar-divider" />
+
+            <!-- Throttle -->
+            <select
+              class="throttle-select"
+              :class="{ active: throttleMs > 0 }"
+              :value="throttleMs"
+              title="Network throttling"
+              @change="setThrottlePreset(+($event.target as HTMLSelectElement).value)"
+            >
+              <option v-for="p in THROTTLE_PRESETS" :key="p.ms" :value="p.ms">{{ p.label }}</option>
+            </select>
 
             <div class="logs-toolbar-spacer" />
 
@@ -885,8 +979,11 @@ defineExpose({
                     :diff-selected="diffSet.has(log.id)"
                     :diff-mode="diffMode"
                     :url-filter="activeFilters.url"
+                    :duplicate-count="getDuplicateCount(log)"
                     @toggle-details="toggleDetails"
                     @toggle-diff="toggleDiff"
+                    @create-mock="createMockFromLog"
+                    @open-replay="openReplayModal"
                   />
                 </div>
               </div>
@@ -902,8 +999,11 @@ defineExpose({
                 :diff-selected="diffSet.has(log.id)"
                 :diff-mode="diffMode"
                 :url-filter="activeFilters.url"
+                :duplicate-count="getDuplicateCount(log)"
                 @toggle-details="toggleDetails"
                 @toggle-diff="toggleDiff"
+                @create-mock="createMockFromLog"
+                @open-replay="openReplayModal"
               />
               <div
                 v-if="displayCount < filteredLogs.length"
@@ -922,8 +1022,11 @@ defineExpose({
           <!-- ── Mocks ── -->
           <MockPanel v-else-if="activeTab === 'mocks'" />
 
-          <!-- ── Mocks ── -->
+          <!-- ── Compare ── -->
           <SessionComparePanel v-else-if="activeTab === 'compare'" />
+
+          <!-- ── Breakpoints ── -->
+          <BreakpointPanel v-else-if="activeTab === 'breakpoints'" />
 
         </div>
 
@@ -959,6 +1062,14 @@ defineExpose({
           :logs="logs"
           @close="showExportModal = false"
           @export="handleExport"
+        />
+
+        <!-- Replay Modal -->
+        <ReplayModal
+          v-if="showReplayModal && replayLog"
+          :log="replayLog"
+          @close="showReplayModal = false"
+          @replay="handleReplay"
         />
 
       </div>

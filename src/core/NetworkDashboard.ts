@@ -4,7 +4,10 @@ import type {
   NetworkDashboardOptions,
   NetworkStats,
   MockRule,
-  MockRulesGroup
+  MockRulesGroup,
+  BreakpointRule,
+  ActiveBreakpoint,
+  BreakpointEdits
 } from './types'
 import { LogStore as LogStoreImpl } from '../store/logStore'
 import { LogFormatter } from './formatters'
@@ -48,6 +51,10 @@ export class NetworkDashboard {
   private mockGroupsChangeCallbacks: Set<(groups: MockRulesGroup[]) => void> = new Set()
   private currentRoute: string | undefined = undefined
   private routerUnsubscribe: (() => void) | null = null
+  private throttleDelay: number = 0
+  private breakpointRules: BreakpointRule[] = []
+  private pendingBreakpoints: Map<string, { data: ActiveBreakpoint; resolve: (edits: BreakpointEdits | null) => void }> = new Map()
+  private activeBreakpointCallbacks: Set<(bps: ActiveBreakpoint[]) => void> = new Set()
 
   /**
    * Create a new NetworkDashboard instance
@@ -138,7 +145,11 @@ export class NetworkDashboard {
     const shouldLog = this.createShouldLogFilter()
     const onLog = this.handleLog.bind(this)
     const onUpdateLog = this.handleUpdateLog.bind(this)
-    const getMock = this.getMockForRequest.bind(this)
+    const getMock = (url: string, method: string, body?: unknown, headers?: Record<string, string>) =>
+      this.getMockForRequest(url, method, body, headers)
+    const getThrottleDelay = () => this.throttleDelay
+    const pauseRequest = (url: string, method: string, body: unknown, headers: Record<string, string>) =>
+      this.checkBreakpoint(url, method, body, headers)
 
     // Initialize interceptors with formatter
     if (this.options.interceptors?.fetch) {
@@ -146,6 +157,8 @@ export class NetworkDashboard {
         onLog,
         onUpdateLog,
         getMock,
+        getThrottleDelay,
+        pauseRequest,
         formatter: this.formatter,
         shouldLog
       }
@@ -158,6 +171,7 @@ export class NetworkDashboard {
         onLog,
         onUpdateLog,
         getMock,
+        getThrottleDelay,
         formatter: this.formatter,
         shouldLog
       }
@@ -294,7 +308,7 @@ export class NetworkDashboard {
   /**
    * Find the first enabled mock rule from enabled groups that matches a request
    */
-  private getMockForRequest = (url: string, method: string): MockRule | null => {
+  private getMockForRequest = (url: string, method: string, requestBody?: unknown, requestHeaders?: Record<string, string>): MockRule | null => {
     for (const group of this.mockGroups) {
       if (!group.enabled) continue
       if (!group.rules) continue
@@ -304,10 +318,119 @@ export class NetworkDashboard {
         const pattern = rule.urlPattern instanceof RegExp
           ? rule.urlPattern
           : new RegExp(rule.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-        if (pattern.test(url)) return rule
+        if (!pattern.test(url)) continue
+        if (rule.conditions && !this.matchConditions(rule.conditions, url, requestBody, requestHeaders)) continue
+        return rule
       }
     }
     return null
+  }
+
+  private matchConditions = (
+    conditions: NonNullable<import('./types').MockRule['conditions']>,
+    url: string,
+    requestBody?: unknown,
+    requestHeaders?: Record<string, string>
+  ): boolean => {
+    if (conditions.queryParams) {
+      const searchParams = new URL(url, 'http://x').searchParams
+      for (const [k, v] of Object.entries(conditions.queryParams)) {
+        if (searchParams.get(k) !== v) return false
+      }
+    }
+    if (conditions.headers && requestHeaders) {
+      for (const [k, v] of Object.entries(conditions.headers)) {
+        if ((requestHeaders[k.toLowerCase()] ?? '').toLowerCase() !== v.toLowerCase()) return false
+      }
+    }
+    if (conditions.bodyFields && requestBody && typeof requestBody === 'object' && requestBody !== null) {
+      const body = requestBody as Record<string, unknown>
+      for (const [k, v] of Object.entries(conditions.bodyFields)) {
+        if (body[k] !== v) return false
+      }
+    }
+    return true
+  }
+
+  // ─── Throttling ────────────────────────────────────────────────────────────────
+
+  public setThrottle = (delayMs: number): void => {
+    this.throttleDelay = Math.max(0, delayMs)
+  }
+
+  public getThrottle = (): number => this.throttleDelay
+
+  // ─── Breakpoints ───────────────────────────────────────────────────────────────
+
+  public addBreakpointRule = (rule: Omit<BreakpointRule, 'id'>): BreakpointRule => {
+    const full: BreakpointRule = { ...rule, id: generateId() }
+    this.breakpointRules.push(full)
+    return full
+  }
+
+  public removeBreakpointRule = (id: string): void => {
+    this.breakpointRules = this.breakpointRules.filter(r => r.id !== id)
+  }
+
+  public updateBreakpointRule = (id: string, updates: Partial<Omit<BreakpointRule, 'id'>>): void => {
+    const rule = this.breakpointRules.find(r => r.id === id)
+    if (rule) Object.assign(rule, updates)
+  }
+
+  public getBreakpointRules = (): BreakpointRule[] => [...this.breakpointRules]
+
+  public getActiveBreakpoints = (): ActiveBreakpoint[] =>
+    [...this.pendingBreakpoints.values()].map(p => p.data)
+
+  public onActiveBreakpointsChange = (cb: (bps: ActiveBreakpoint[]) => void): (() => void) => {
+    this.activeBreakpointCallbacks.add(cb)
+    return () => this.activeBreakpointCallbacks.delete(cb)
+  }
+
+  public releaseBreakpoint = (id: string, edits: BreakpointEdits): void => {
+    const pending = this.pendingBreakpoints.get(id)
+    if (!pending) return
+    this.pendingBreakpoints.delete(id)
+    this.notifyActiveBreakpoints()
+    pending.resolve(edits)
+  }
+
+  public cancelBreakpoint = (id: string): void => {
+    const pending = this.pendingBreakpoints.get(id)
+    if (!pending) return
+    this.pendingBreakpoints.delete(id)
+    this.notifyActiveBreakpoints()
+    pending.resolve(null)
+  }
+
+  public checkBreakpoint = (
+    url: string,
+    method: string,
+    body: unknown,
+    headers: Record<string, string>
+  ): Promise<BreakpointEdits | null> | null => {
+    const rule = this.breakpointRules.find(r => {
+      if (!r.enabled) return false
+      if (r.method && r.method.toUpperCase() !== method.toUpperCase()) return false
+      const pattern = r.urlPattern instanceof RegExp
+        ? r.urlPattern
+        : new RegExp(r.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      return pattern.test(url)
+    })
+    if (!rule) return null
+
+    const id = generateId()
+    const data: ActiveBreakpoint = { id, url, method, requestHeaders: headers, requestBody: body, timestamp: Date.now() }
+
+    return new Promise<BreakpointEdits | null>(resolve => {
+      this.pendingBreakpoints.set(id, { data, resolve })
+      this.notifyActiveBreakpoints()
+    })
+  }
+
+  private notifyActiveBreakpoints = (): void => {
+    const bps = this.getActiveBreakpoints()
+    for (const cb of this.activeBreakpointCallbacks) cb(bps)
   }
 
   // ─── Mock groups API ───────────────────────────────────────────────────────────
@@ -450,7 +573,9 @@ export class NetworkDashboard {
   // ─── Legacy mock API (for backward compatibility) ──────────────────────────────
 
   public addMock = (rule: Omit<MockRule, 'id'>): MockRule => {
-    return this.addMockToGroup('default', rule)
+    const group = this.mockGroups.find(g => g.name === 'default') ?? this.mockGroups[0]
+    if (!group) throw new Error('No mock groups available')
+    return this.addMockToGroup(group.id, rule)
   }
 
   public updateMock = (id: string, updates: Partial<Omit<MockRule, 'id'>>): void => {
