@@ -1433,3 +1433,23 @@ The plugin has **no runtime dependencies** besides Vue 3. It relies only on stan
 ## License
 
 MIT
+
+## Author
+
+Danil Lisin Vladimirovich aka Macrulez
+
+GitHub: [macrulezru](https://github.com/macrulezru) · Website: [macrulez.ru/en](https://macrulez.ru/en)
+
+Bugs and questions — [issues](https://github.com/macrulezru/vue-network-dashboard/issues)
+
+---
+
+## 💖 Support the project
+
+Open source takes time and effort. If my work saves you time or brings value, consider supporting further development.
+
+<a href="https://donate.cryptocloud.plus/M6O34NIN" target="_blank">
+  <img src="https://img.shields.io/badge/Donate-CryptoCloud-8A2BE2?style=for-the-badge&logo=cryptocurrency&logoColor=white" alt="Donate via CryptoCloud">
+</a>
+
+Thank you for being part of this journey. ❤️
