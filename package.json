@@ -1,16 +1,19 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.2.8",
-  "description": "Universal network logger for Vue 3 applications - intercepts HTTP and WebSocket traffic",
+  "version": "0.2.9",
+  "description": "Network monitoring for Vue 3 — intercepts Fetch, XHR, WebSocket and SSE traffic, sanitizes secrets and shows reactive logs and stats.",
   "type": "module",
   "main": "./dist/vue-network-dashboard.umd.js",
   "module": "./dist/vue-network-dashboard.esm.js",
   "types": "./dist/types/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
   "exports": {
     ".": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/vue-network-dashboard.esm.js",
-      "require": "./dist/vue-network-dashboard.umd.js",
-      "types": "./dist/types/index.d.ts"
+      "require": "./dist/vue-network-dashboard.umd.js"
     },
     "./nuxt": {
       "import": "./dist/nuxt.mjs"
@@ -46,15 +49,13 @@
     "fetch",
     "xhr",
     "websocket",
+    "sse",
     "debugging",
-    "monitoring"
+    "devtools",
+    "typescript"
   ],
-  "author": {
-    "name": "Danil Lisin",
-    "email": "macrulezru@gmail.com",
-    "url": "https://macrulez.ru"
-  },
-  "homepage": "https://macrulez.ru",
+  "author": "macrulez <macrulezru@gmail.com> (https://macrulez.ru/en)",
+  "homepage": "https://github.com/macrulezru/vue-network-dashboard#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/macrulezru/vue-network-dashboard.git"
