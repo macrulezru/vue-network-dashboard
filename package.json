@@ -1,7 +1,10 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Network monitoring for Vue 3 — intercepts Fetch, XHR, WebSocket and SSE traffic, sanitizes secrets and shows reactive logs and stats.",
+  "author": "macrulez <macrulezru@gmail.com> (https://macrulez.ru/en)",
+  "license": "MIT",
+  "homepage": "https://npm.vuecraft.ru/en/packages/vue-network-dashboard/",
   "type": "module",
   "main": "./dist/vue-network-dashboard.umd.js",
   "module": "./dist/vue-network-dashboard.esm.js",
@@ -54,8 +57,6 @@
     "devtools",
     "typescript"
   ],
-  "author": "macrulez <macrulezru@gmail.com> (https://macrulez.ru/en)",
-  "homepage": "https://github.com/macrulezru/vue-network-dashboard#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/macrulezru/vue-network-dashboard.git"
@@ -63,7 +64,6 @@
   "bugs": {
     "url": "https://github.com/macrulezru/vue-network-dashboard/issues"
   },
-  "license": "MIT",
   "peerDependencies": {
     "vue": "^3.0.0"
   },
