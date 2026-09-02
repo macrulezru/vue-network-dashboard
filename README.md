@@ -1413,9 +1413,7 @@ vue-network-dashboard/
 │   │       ├── variables.scss       # Design tokens (colours, spacing, typography)
 │   │       └── debugger.scss        # All component styles
 │   ├── devtools.ts                  # setupDevtools() — Vue DevTools inspector + timeline layer
-│   ├── nuxt.ts                      # Nuxt 3 module (defineNuxtModule)
-│   └── runtime/
-│       └── nuxt-plugin.ts           # Nuxt client plugin — registered automatically by nuxt.ts
+│   └── nuxt.ts                      # Nuxt 3 module (defineNuxtModule) — registers the client plugin inline via addPluginTemplate()
 └── demo/                            # Demo app (Vite + Vue 3)
 ```
 

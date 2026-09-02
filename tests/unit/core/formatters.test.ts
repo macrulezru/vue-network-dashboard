@@ -163,6 +163,91 @@ describe('HTTPFormatter', () => {
       expect(errorEntry.error.message).toBe('Unknown error')
     })
   })
+
+  describe('calculateTTFB', () => {
+    it('computes ttfb from ttfbTime when enabled', () => {
+      const ttfbFormatter = new HTTPFormatter({ calculateTTFB: true })
+      const startTime = 1000
+      const requestEntry = ttfbFormatter.formatRequest({
+        url: 'https://api.example.com/x', method: 'GET', startTime,
+        requestHeaders: {}, requestBody: null, clientType: 'fetch'
+      })
+
+      const entry = ttfbFormatter.formatResponse(requestEntry, {
+        status: 200, statusText: 'OK', responseHeaders: {}, responseBody: null,
+        endTime: startTime + 300, ttfbTime: startTime + 120
+      })
+
+      expect(entry.metadata.ttfb).toBe(120)
+    })
+
+    it('leaves ttfb null when disabled or ttfbTime missing', () => {
+      const requestEntry = formatter.formatRequest({
+        url: 'https://api.example.com/x', method: 'GET', startTime: 1000,
+        requestHeaders: {}, requestBody: null, clientType: 'fetch'
+      })
+      expect(requestEntry.metadata.ttfb).toBeNull()
+
+      const entry = formatter.formatResponse(requestEntry, {
+        status: 200, statusText: 'OK', responseHeaders: {}, responseBody: null,
+        endTime: 1300, ttfbTime: 1120
+      })
+      expect(entry.metadata.ttfb).toBeNull()
+    })
+  })
+
+  describe('trackRetries', () => {
+    it('increments retryCount for repeated failed requests to the same method+URL', () => {
+      const retryFormatter = new HTTPFormatter({ trackRetries: true })
+      const params = {
+        url: 'https://api.example.com/flaky', method: 'GET',
+        requestHeaders: {}, requestBody: null, clientType: 'fetch' as const
+      }
+
+      const attempt1 = retryFormatter.formatRequest({ ...params, startTime: 1000 })
+      expect(attempt1.metadata.retryCount).toBe(0)
+      retryFormatter.formatResponse(attempt1, {
+        status: 500, statusText: 'Error', responseHeaders: {}, responseBody: null, endTime: 1100
+      })
+
+      const attempt2 = retryFormatter.formatRequest({ ...params, startTime: 1200 })
+      expect(attempt2.metadata.retryCount).toBe(1)
+      retryFormatter.formatResponse(attempt2, {
+        status: 200, statusText: 'OK', responseHeaders: {}, responseBody: null, endTime: 1300
+      })
+
+      const attempt3 = retryFormatter.formatRequest({ ...params, startTime: 1400 })
+      expect(attempt3.metadata.retryCount).toBe(0)
+    })
+
+    it('increments retryCount after a network error (formatError)', () => {
+      const retryFormatter = new HTTPFormatter({ trackRetries: true })
+      const params = {
+        url: 'https://api.example.com/down', method: 'POST',
+        requestHeaders: {}, requestBody: null, clientType: 'fetch' as const
+      }
+
+      const attempt1 = retryFormatter.formatRequest({ ...params, startTime: 1000 })
+      retryFormatter.formatError(params, new Error('Network error'), 1050)
+
+      const attempt2 = retryFormatter.formatRequest({ ...params, startTime: 1100 })
+      expect(attempt2.metadata.retryCount).toBe(1)
+      expect(attempt1.metadata.retryCount).toBe(0)
+    })
+
+    it('stays at 0 when disabled', () => {
+      const params = {
+        url: 'https://api.example.com/flaky', method: 'GET',
+        requestHeaders: {}, requestBody: null, clientType: 'fetch' as const
+      }
+      const attempt1 = formatter.formatRequest({ ...params, startTime: 1000 })
+      formatter.formatResponse(attempt1, {
+        status: 500, statusText: 'Error', responseHeaders: {}, responseBody: null, endTime: 1100
+      })
+      const attempt2 = formatter.formatRequest({ ...params, startTime: 1200 })
+      expect(attempt2.metadata.retryCount).toBe(0)
+    })
+  })
 })
 
 describe('WebSocketFormatter', () => {

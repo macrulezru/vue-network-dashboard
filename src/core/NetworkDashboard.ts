@@ -81,6 +81,8 @@ export class NetworkDashboard {
         ...options.sanitization
       },
       metrics: {
+        calculateTTFB: true,
+        trackRetries: true,
         ...options.metrics
       },
       callbacks: {
@@ -102,7 +104,9 @@ export class NetworkDashboard {
       },
       sanitizeBody: (body: any) => {
         return sanitizeBody(body, sanitizationRules.sensitiveFields, sanitizationRules.maskFields)
-      }
+      },
+      calculateTTFB: this.options.metrics?.calculateTTFB,
+      trackRetries: this.options.metrics?.trackRetries
     })
 
     // Load mock groups (with migration from old format)
@@ -956,9 +960,11 @@ export class NetworkDashboard {
       },
       sanitizeBody: (body: any) => {
         return sanitizeBody(body, sanitizationRules.sensitiveFields, sanitizationRules.maskFields)
-      }
+      },
+      calculateTTFB: this.options.metrics?.calculateTTFB,
+      trackRetries: this.options.metrics?.trackRetries
     })
-    
+
     if (wasEnabled) {
       this.enable()
     }
