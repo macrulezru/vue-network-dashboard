@@ -14,7 +14,6 @@ type DiffLine = { text: string; type: 'same' | 'add' | 'remove' }
 const diffLines = (a: string, b: string): DiffLine[] => {
   const linesA = a.split('\n')
   const linesB = b.split('\n')
-  const result: DiffLine[] = []
 
   // LCS-based diff
   const m = linesA.length, n = linesB.length
@@ -71,7 +70,9 @@ const resHeadersDiff = computed(() => headersDiff(props.logA.responseHeaders, pr
         <span :class="['method', logA.method.toLowerCase()]">{{ logA.method }}</span>
         <span class="diff-title-url">{{ logA.url }}</span>
       </div>
-      <div class="diff-sep">↔</div>
+      <div class="diff-sep">
+        ↔
+      </div>
       <div class="diff-title-b">
         <span :class="['method', logB.method.toLowerCase()]">{{ logB.method }}</span>
         <span class="diff-title-url">{{ logB.url }}</span>
@@ -79,10 +80,19 @@ const resHeadersDiff = computed(() => headersDiff(props.logA.responseHeaders, pr
     </div>
 
     <!-- Changed request headers -->
-    <div v-if="reqHeadersDiff.length" class="diff-section">
-      <div class="section-header"><span>Request Headers (changed)</span></div>
+    <div
+      v-if="reqHeadersDiff.length"
+      class="diff-section"
+    >
+      <div class="section-header">
+        <span>Request Headers (changed)</span>
+      </div>
       <div class="diff-header-table">
-        <div v-for="row in reqHeadersDiff" :key="row.key" :class="['diff-header-row', 'diff-' + row.type]">
+        <div
+          v-for="row in reqHeadersDiff"
+          :key="row.key"
+          :class="['diff-header-row', 'diff-' + row.type]"
+        >
           <span class="kv-key">{{ row.key }}</span>
           <span class="kv-val diff-val-a">{{ row.a || '—' }}</span>
           <span class="diff-arrow">→</span>
@@ -92,10 +102,19 @@ const resHeadersDiff = computed(() => headersDiff(props.logA.responseHeaders, pr
     </div>
 
     <!-- Changed response headers -->
-    <div v-if="resHeadersDiff.length" class="diff-section">
-      <div class="section-header"><span>Response Headers (changed)</span></div>
+    <div
+      v-if="resHeadersDiff.length"
+      class="diff-section"
+    >
+      <div class="section-header">
+        <span>Response Headers (changed)</span>
+      </div>
       <div class="diff-header-table">
-        <div v-for="row in resHeadersDiff" :key="row.key" :class="['diff-header-row', 'diff-' + row.type]">
+        <div
+          v-for="row in resHeadersDiff"
+          :key="row.key"
+          :class="['diff-header-row', 'diff-' + row.type]"
+        >
           <span class="kv-key">{{ row.key }}</span>
           <span class="kv-val diff-val-a">{{ row.a || '—' }}</span>
           <span class="diff-arrow">→</span>
@@ -105,29 +124,58 @@ const resHeadersDiff = computed(() => headersDiff(props.logA.responseHeaders, pr
     </div>
 
     <!-- Request body diff -->
-    <div v-if="reqBodyDiff.some(l => l.type !== 'same')" class="diff-section">
-      <div class="section-header"><span>Request Body</span></div>
+    <div
+      v-if="reqBodyDiff.some(l => l.type !== 'same')"
+      class="diff-section"
+    >
+      <div class="section-header">
+        <span>Request Body</span>
+      </div>
       <pre class="diff-code">
-        <div v-for="(line, i) in reqBodyDiff" :key="i" :class="['diff-line', 'diff-line-' + line.type]">
+        <div
+v-for="(line, i) in reqBodyDiff"
+:key="i"
+:class="['diff-line', 'diff-line-' + line.type]"
+>
           <span class="diff-sign">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>{{ line.text }}
         </div>
       </pre>
     </div>
 
     <!-- Response body diff -->
-    <div v-if="resBodyDiff.some(l => l.type !== 'same')" class="diff-section">
-      <div class="section-header"><span>Response Body</span></div>
+    <div
+      v-if="resBodyDiff.some(l => l.type !== 'same')"
+      class="diff-section"
+    >
+      <div class="section-header">
+        <span>Response Body</span>
+      </div>
       <pre class="diff-code">
-        <div v-for="(line, i) in resBodyDiff" :key="i" :class="['diff-line', 'diff-line-' + line.type]">
+        <div
+v-for="(line, i) in resBodyDiff"
+:key="i"
+:class="['diff-line', 'diff-line-' + line.type]"
+>
           <span class="diff-sign">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>{{ line.text }}
         </div>
       </pre>
     </div>
 
-    <div v-if="!reqHeadersDiff.length && !resHeadersDiff.length && !reqBodyDiff.some(l=>l.type!=='same') && !resBodyDiff.some(l=>l.type!=='same')" class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="m9 12 2 2 4-4"/>
-        <circle cx="12" cy="12" r="10"/>
+    <div
+      v-if="!reqHeadersDiff.length && !resHeadersDiff.length && !reqBodyDiff.some(l=>l.type!=='same') && !resBodyDiff.some(l=>l.type!=='same')"
+      class="empty-state"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+      >
+        <path d="m9 12 2 2 4-4" />
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+        />
       </svg>
       <p>Requests are identical</p>
     </div>

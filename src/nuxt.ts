@@ -29,6 +29,15 @@ import type { NetworkDashboardOptions } from './core/types'
 
 export interface ModuleOptions extends NetworkDashboardOptions {}
 
+declare module '@nuxt/schema' {
+  interface NuxtConfig {
+    networkDashboard?: ModuleOptions
+  }
+  interface NuxtOptions {
+    networkDashboard: ModuleOptions
+  }
+}
+
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'vue-network-dashboard',
@@ -43,6 +52,10 @@ export default defineNuxtModule<ModuleOptions>({
   },
 
   setup(options: ModuleOptions, nuxt: any) {
+    nuxt.hook('prepare:types', ({ references }: { references: { types: string }[] }) => {
+      references.push({ types: 'vue-network-dashboard/nuxt' })
+    })
+
     if (options.devOnly && !nuxt.options.dev) return
 
     // Expose plugin options through runtimeConfig so the client plugin can read them.

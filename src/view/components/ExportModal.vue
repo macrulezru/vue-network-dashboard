@@ -159,39 +159,77 @@ const handleExport = () => {
 </script>
 
 <template>
-  <div class="export-modal-overlay" @click.stop.self="emit('close')">
+  <div
+    class="export-modal-overlay"
+    @click.stop.self="emit('close')"
+  >
     <div class="export-modal">
-
       <!-- Header -->
       <div class="export-modal-header">
         <span class="export-modal-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line
+              x1="12"
+              y1="15"
+              x2="12"
+              y2="3"
+            />
           </svg>
           Export logs
         </span>
-        <button class="export-modal-close" @click="emit('close')">&times;</button>
+        <button
+          class="export-modal-close"
+          @click="emit('close')"
+        >
+          &times;
+        </button>
       </div>
 
       <div class="export-modal-body">
-
         <!-- Format -->
         <div class="export-section">
-          <div class="export-section-label">Format</div>
+          <div class="export-section-label">
+            Format
+          </div>
           <div class="export-format-tabs">
-            <button :class="{ active: format === 'json' }" @click="format = 'json'">JSON</button>
-            <button :class="{ active: format === 'csv' }"  @click="format = 'csv'">CSV</button>
-            <button :class="{ active: format === 'har' }"  @click="format = 'har'">HAR</button>
+            <button
+              :class="{ active: format === 'json' }"
+              @click="format = 'json'"
+            >
+              JSON
+            </button>
+            <button
+              :class="{ active: format === 'csv' }"
+              @click="format = 'csv'"
+            >
+              CSV
+            </button>
+            <button
+              :class="{ active: format === 'har' }"
+              @click="format = 'har'"
+            >
+              HAR
+            </button>
           </div>
         </div>
 
         <!-- Protocols -->
-        <div v-if="allProtocols.length > 1" class="export-section">
+        <div
+          v-if="allProtocols.length > 1"
+          class="export-section"
+        >
           <div class="export-section-label">
             Protocols
-            <button class="export-toggle-all" @click="toggleAllProtocols">
+            <button
+              class="export-toggle-all"
+              @click="toggleAllProtocols"
+            >
               {{ allProtocolsSelected ? 'Deselect all' : 'Select all' }}
             </button>
           </div>
@@ -205,17 +243,23 @@ const handleExport = () => {
                 type="checkbox"
                 :checked="selectedProtocols.has(p)"
                 @change="toggleProtocol(p)"
-              />
+              >
               <span :class="['export-protocol-badge', p]">{{ protocolLabel(p) }}</span>
             </label>
           </div>
         </div>
 
         <!-- Status codes -->
-        <div v-if="allStatuses.length > 0" class="export-section">
+        <div
+          v-if="allStatuses.length > 0"
+          class="export-section"
+        >
           <div class="export-section-label">
             Status codes
-            <button class="export-toggle-all" @click="toggleAll">
+            <button
+              class="export-toggle-all"
+              @click="toggleAll"
+            >
               {{ allSelected ? 'Deselect all' : 'Select all' }}
             </button>
           </div>
@@ -229,17 +273,25 @@ const handleExport = () => {
                 type="checkbox"
                 :checked="selectedStatuses.has(code)"
                 @change="toggleStatus(code)"
-              />
+              >
               <span :class="['export-status-badge', getStatusClass(code)]">{{ code }}</span>
             </label>
           </div>
         </div>
 
         <!-- Time range -->
-        <div v-if="hasTimeRange" class="export-section">
-          <div class="export-section-label">Time range</div>
+        <div
+          v-if="hasTimeRange"
+          class="export-section"
+        >
+          <div class="export-section-label">
+            Time range
+          </div>
           <div class="export-slider">
-            <div ref="trackRef" class="export-slider-track">
+            <div
+              ref="trackRef"
+              class="export-slider-track"
+            >
               <div
                 class="export-slider-fill"
                 :style="{ left: `${sliderFrom}%`, width: `${sliderTo - sliderFrom}%` }"
@@ -261,7 +313,6 @@ const handleExport = () => {
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- Footer -->
@@ -272,15 +323,23 @@ const handleExport = () => {
           :disabled="exportableLogs.length === 0"
           @click="handleExport"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line
+              x1="12"
+              y1="15"
+              x2="12"
+              y2="3"
+            />
           </svg>
           Export
         </button>
       </div>
-
     </div>
   </div>
 </template>

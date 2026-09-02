@@ -190,88 +190,183 @@ const truncateUrl = (url: string, max = 55) =>
 
 <template>
   <div class="compare-panel">
-
     <!-- ── No sessions loaded ── -->
-    <div v-if="!sessionA || !sessionB" class="compare-setup">
-      <p class="compare-hint">Load two HAR files to compare sessions side by side.</p>
+    <div
+      v-if="!sessionA || !sessionB"
+      class="compare-setup"
+    >
+      <p class="compare-hint">
+        Load two HAR files to compare sessions side by side.
+      </p>
       <div class="compare-slots">
-
-        <div :class="['compare-slot', { loaded: !!sessionA }]"
-          @dragover.prevent @drop="onDrop($event, 'a')" @click="inputA?.click()">
-          <input ref="inputA" type="file" accept=".har,.json" style="display:none" @change="onFileA" />
-          <div v-if="!sessionA" class="slot-empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        <div
+          :class="['compare-slot', { loaded: !!sessionA }]"
+          @dragover.prevent
+          @drop="onDrop($event, 'a')"
+          @click="inputA?.click()"
+        >
+          <input
+            ref="inputA"
+            type="file"
+            accept=".har,.json"
+            style="display:none"
+            @change="onFileA"
+          >
+          <div
+            v-if="!sessionA"
+            class="slot-empty"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" /><line
+                x1="12"
+                y1="3"
+                x2="12"
+                y2="15"
+              />
             </svg>
             <span>Session A</span>
             <small>Drop .har or click to load</small>
           </div>
-          <div v-else class="slot-loaded">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="slot-ok-icon">
-              <polyline points="20 6 9 17 4 12"/>
+          <div
+            v-else
+            class="slot-loaded"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              class="slot-ok-icon"
+            >
+              <polyline points="20 6 9 17 4 12" />
             </svg>
             <div class="slot-info">
               <span class="slot-name">{{ sessionA.name }}</span>
               <span class="slot-count">{{ sessionA.entries.length }} requests</span>
             </div>
-            <button class="slot-clear" @click.stop="sessionA = null">×</button>
+            <button
+              class="slot-clear"
+              @click.stop="sessionA = null"
+            >
+              ×
+            </button>
           </div>
         </div>
 
-        <div class="compare-vs">vs</div>
+        <div class="compare-vs">
+          vs
+        </div>
 
-        <div :class="['compare-slot', { loaded: !!sessionB }]"
-          @dragover.prevent @drop="onDrop($event, 'b')" @click="inputB?.click()">
-          <input ref="inputB" type="file" accept=".har,.json" style="display:none" @change="onFileB" />
-          <div v-if="!sessionB" class="slot-empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        <div
+          :class="['compare-slot', { loaded: !!sessionB }]"
+          @dragover.prevent
+          @drop="onDrop($event, 'b')"
+          @click="inputB?.click()"
+        >
+          <input
+            ref="inputB"
+            type="file"
+            accept=".har,.json"
+            style="display:none"
+            @change="onFileB"
+          >
+          <div
+            v-if="!sessionB"
+            class="slot-empty"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" /><line
+                x1="12"
+                y1="3"
+                x2="12"
+                y2="15"
+              />
             </svg>
             <span>Session B</span>
             <small>Drop .har or click to load</small>
           </div>
-          <div v-else class="slot-loaded">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="slot-ok-icon">
-              <polyline points="20 6 9 17 4 12"/>
+          <div
+            v-else
+            class="slot-loaded"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              class="slot-ok-icon"
+            >
+              <polyline points="20 6 9 17 4 12" />
             </svg>
             <div class="slot-info">
               <span class="slot-name">{{ sessionB.name }}</span>
               <span class="slot-count">{{ sessionB.entries.length }} requests</span>
             </div>
-            <button class="slot-clear" @click.stop="sessionB = null">×</button>
+            <button
+              class="slot-clear"
+              @click.stop="sessionB = null"
+            >
+              ×
+            </button>
           </div>
         </div>
-
       </div>
     </div>
 
     <!-- ── Diff view ── -->
     <template v-else>
-
       <!-- Summary + filter bar -->
       <div class="compare-toolbar">
-        <button :class="['cmp-filter', { active: filter === 'all' }]" @click="filter = 'all'">
+        <button
+          :class="['cmp-filter', { active: filter === 'all' }]"
+          @click="filter = 'all'"
+        >
           All <span class="cmp-badge">{{ counts.added + counts.removed + counts.changed }}</span>
         </button>
-        <button :class="['cmp-filter added', { active: filter === 'added' }]" @click="filter = 'added'">
+        <button
+          :class="['cmp-filter added', { active: filter === 'added' }]"
+          @click="filter = 'added'"
+        >
           Added <span class="cmp-badge">{{ counts.added }}</span>
         </button>
-        <button :class="['cmp-filter removed', { active: filter === 'removed' }]" @click="filter = 'removed'">
+        <button
+          :class="['cmp-filter removed', { active: filter === 'removed' }]"
+          @click="filter = 'removed'"
+        >
           Removed <span class="cmp-badge">{{ counts.removed }}</span>
         </button>
-        <button :class="['cmp-filter changed', { active: filter === 'changed' }]" @click="filter = 'changed'">
+        <button
+          :class="['cmp-filter changed', { active: filter === 'changed' }]"
+          @click="filter = 'changed'"
+        >
           Changed <span class="cmp-badge">{{ counts.changed }}</span>
         </button>
-        <button :class="['cmp-filter', { active: filter === 'same' }]" @click="filter = 'same'">
+        <button
+          :class="['cmp-filter', { active: filter === 'same' }]"
+          @click="filter = 'same'"
+        >
           Unchanged <span class="cmp-badge">{{ counts.same }}</span>
         </button>
         <div style="flex:1" />
-        <button class="cmp-reload" @click="sessionA = null; sessionB = null">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
+        <button
+          class="cmp-reload"
+          @click="sessionA = null; sessionB = null"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
           </svg>
           Reset
         </button>
@@ -293,12 +388,18 @@ const truncateUrl = (url: string, max = 55) =>
 
       <!-- Diff rows -->
       <div class="cmp-rows-wrap">
-        <div v-if="filteredRows.length === 0" class="compare-empty">
+        <div
+          v-if="filteredRows.length === 0"
+          class="compare-empty"
+        >
           No entries match the current filter
         </div>
 
-        <div v-for="(row, i) in filteredRows" :key="i" :class="['cmp-row', `kind-${row.kind}`]">
-
+        <div
+          v-for="(row, i) in filteredRows"
+          :key="i"
+          :class="['cmp-row', `kind-${row.kind}`]"
+        >
           <!-- Side A -->
           <div :class="['cmp-side', 'side-a', row.kind === 'added' ? 'side-absent' : '']">
             <template v-if="row.entryA">
@@ -306,14 +407,20 @@ const truncateUrl = (url: string, max = 55) =>
                 {{ row.kind === 'removed' ? '−' : ' ' }}
               </span>
               <span :class="['dist-badge', getMethodClass(row.method)]">{{ row.method }}</span>
-              <span class="cmp-url" :title="row.entryA.url">{{ truncateUrl(row.entryA.url) }}</span>
+              <span
+                class="cmp-url"
+                :title="row.entryA.url"
+              >{{ truncateUrl(row.entryA.url) }}</span>
               <span :class="['status-chip', statusClass(row.entryA.http?.status ?? null)]">
                 {{ row.entryA.http?.status ?? '—' }}
               </span>
               <span class="cmp-dur">{{ fmtDur(row.entryA.duration) }}</span>
               <span class="cmp-size">{{ fmtSize(row.entryA.response.bodySize) }}</span>
             </template>
-            <span v-else class="side-empty-label">not present</span>
+            <span
+              v-else
+              class="side-empty-label"
+            >not present</span>
           </div>
 
           <!-- Divider -->
@@ -326,27 +433,33 @@ const truncateUrl = (url: string, max = 55) =>
                 {{ row.kind === 'added' ? '+' : row.kind === 'changed' ? '~' : '=' }}
               </span>
               <span :class="['dist-badge', getMethodClass(row.method)]">{{ row.method }}</span>
-              <span class="cmp-url" :title="row.entryB.url">{{ truncateUrl(row.entryB.url) }}</span>
+              <span
+                class="cmp-url"
+                :title="row.entryB.url"
+              >{{ truncateUrl(row.entryB.url) }}</span>
               <span :class="['status-chip', statusClass(row.entryB.http?.status ?? null), { 'val-changed': row.statusChanged }]">
                 {{ row.entryB.http?.status ?? '—' }}
               </span>
               <span :class="['cmp-dur', { 'val-changed': row.durationChanged }]">
                 {{ fmtDur(row.entryB.duration) }}
               </span>
-              <span v-if="row.kind === 'changed' && (row.durationChanged || row.statusChanged || row.sizeChanged)"
-                :class="['cmp-delta', (row.entryB.duration ?? 0) > (row.entryA?.duration ?? 0) ? 'delta-worse' : 'delta-better']">
+              <span
+                v-if="row.kind === 'changed' && (row.durationChanged || row.statusChanged || row.sizeChanged)"
+                :class="['cmp-delta', (row.entryB.duration ?? 0) > (row.entryA?.duration ?? 0) ? 'delta-worse' : 'delta-better']"
+              >
                 {{ durDelta(row) }}
               </span>
               <span :class="['cmp-size', { 'val-changed': row.sizeChanged }]">
                 {{ fmtSize(row.entryB.response.bodySize) }}
               </span>
             </template>
-            <span v-else class="side-empty-label">not present</span>
+            <span
+              v-else
+              class="side-empty-label"
+            >not present</span>
           </div>
-
         </div>
       </div>
-
     </template>
   </div>
 </template>

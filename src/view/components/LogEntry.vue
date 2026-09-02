@@ -178,16 +178,29 @@ const toggleDiff = (e: MouseEvent) => {
 
 <template>
   <div :class="['log-entry', log.type, { 'has-error': log.error.occurred, expanded: isExpanded, 'is-pending': isPending, 'is-mocked': isMocked, 'diff-selected': diffSelected }]">
-
     <!-- Summary row -->
-    <div :class="['log-summary', { 'diff-mode': diffMode }]" @click="toggleExpand">
+    <div
+      :class="['log-summary', { 'diff-mode': diffMode }]"
+      @click="toggleExpand"
+    >
       <!-- Chevron / pending spinner -->
       <span class="log-chevron">
-        <svg v-if="!isPending" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <polyline points="9 18 15 12 9 6"/>
+        <svg
+          v-if="!isPending"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <polyline points="9 18 15 12 9 6" />
         </svg>
-        <svg v-else class="pending-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        <svg
+          v-else
+          class="pending-spinner"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
         </svg>
       </span>
 
@@ -195,16 +208,34 @@ const toggleDiff = (e: MouseEvent) => {
       <span :class="['method', getMethodClass()]">{{ log.method }}</span>
 
       <!-- URL -->
-      <span class="log-url" :title="log.url">
+      <span
+        class="log-url"
+        :title="log.url"
+      >
         <template v-if="urlHighlightParts.length">
-          <span v-for="(part, i) in urlHighlightParts" :key="i" :class="{ 'url-match': part.match }">{{ part.text }}</span>
+          <span
+            v-for="(part, i) in urlHighlightParts"
+            :key="i"
+            :class="{ 'url-match': part.match }"
+          >{{ part.text }}</span>
         </template>
         <template v-else>{{ log.url }}</template>
-        <span v-if="isMocked" class="mocked-badge">mock</span>
-        <span v-if="gqlInfo" class="gql-badge" :title="gqlInfo.operationType">
+        <span
+          v-if="isMocked"
+          class="mocked-badge"
+        >mock</span>
+        <span
+          v-if="gqlInfo"
+          class="gql-badge"
+          :title="gqlInfo.operationType"
+        >
           {{ gqlInfo.operationName ?? 'GraphQL' }}
         </span>
-        <span v-if="duplicateCount && duplicateCount > 1" class="n1-badge" :title="`Sent ${duplicateCount} times — possible N+1`">
+        <span
+          v-if="duplicateCount && duplicateCount > 1"
+          class="n1-badge"
+          :title="`Sent ${duplicateCount} times — possible N+1`"
+        >
           ×{{ duplicateCount }}
         </span>
       </span>
@@ -215,10 +246,16 @@ const toggleDiff = (e: MouseEvent) => {
       </span>
 
       <!-- Duration -->
-      <span v-if="log.duration !== null && !isPending" :class="['duration', getDurationClass()]">
+      <span
+        v-if="log.duration !== null && !isPending"
+        :class="['duration', getDurationClass()]"
+      >
         {{ log.duration }}ms
       </span>
-      <span v-else class="duration">{{ isPending ? '' : '—' }}</span>
+      <span
+        v-else
+        class="duration"
+      >{{ isPending ? '' : '—' }}</span>
 
       <!-- Size -->
       <span class="size">{{ isPending ? '' : formatBytes(totalSize) }}</span>
@@ -233,50 +270,127 @@ const toggleDiff = (e: MouseEvent) => {
         :title="diffSelected ? 'Remove from diff' : 'Select for diff'"
         @click.stop="toggleDiff"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
         </svg>
       </button>
     </div>
 
     <!-- Expanded details -->
-    <div v-if="isExpanded" class="log-details">
-
+    <div
+      v-if="isExpanded"
+      class="log-details"
+    >
       <!-- Error banner -->
-      <div v-if="log.error.occurred" class="error-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
+      <div
+        v-if="log.error.occurred"
+        class="error-banner"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+          <line
+            x1="12"
+            y1="8"
+            x2="12"
+            y2="12"
+          />
+          <line
+            x1="12"
+            y1="16"
+            x2="12.01"
+            y2="16"
+          />
         </svg>
         <div class="error-content">
           <span class="error-message">{{ log.error.message }}</span>
-          <pre v-if="log.error.stack" class="error-stack">{{ log.error.stack }}</pre>
+          <pre
+            v-if="log.error.stack"
+            class="error-stack"
+          >{{ log.error.stack }}</pre>
         </div>
       </div>
 
       <!-- Detail tabs -->
       <div class="details-tabs">
-        <button :class="{ active: detailTab === 'request' }"  @click.stop="detailTab = 'request'">Request</button>
-        <button :class="{ active: detailTab === 'response' }" @click.stop="detailTab = 'response'">Response</button>
-        <button :class="{ active: detailTab === 'meta' }"     @click.stop="detailTab = 'meta'">Meta</button>
-        <div v-if="log.type === 'http'" class="details-actions">
-          <button class="copy-btn" title="Copy as cURL" @click.stop="copyAsCurl">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+        <button
+          :class="{ active: detailTab === 'request' }"
+          @click.stop="detailTab = 'request'"
+        >
+          Request
+        </button>
+        <button
+          :class="{ active: detailTab === 'response' }"
+          @click.stop="detailTab = 'response'"
+        >
+          Response
+        </button>
+        <button
+          :class="{ active: detailTab === 'meta' }"
+          @click.stop="detailTab = 'meta'"
+        >
+          Meta
+        </button>
+        <div
+          v-if="log.type === 'http'"
+          class="details-actions"
+        >
+          <button
+            class="copy-btn"
+            title="Copy as cURL"
+            @click.stop="copyAsCurl"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <polyline points="4 17 10 11 4 5" /><line
+                x1="12"
+                y1="19"
+                x2="20"
+                y2="19"
+              />
             </svg>
             cURL
           </button>
-          <button class="copy-btn" title="Edit and replay request" @click.stop="emit('openReplay', log)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="1 4 1 10 7 10"/>
-              <path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+          <button
+            class="copy-btn"
+            title="Edit and replay request"
+            @click.stop="emit('openReplay', log)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 .49-4.95" />
             </svg>
             Replay
           </button>
-          <button class="copy-btn" title="Create mock from this response" @click.stop="emit('createMock', log)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M12 5v14M5 12h14"/>
+          <button
+            class="copy-btn"
+            title="Create mock from this response"
+            @click.stop="emit('createMock', log)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path d="M12 5v14M5 12h14" />
             </svg>
             Mock
           </button>
@@ -284,10 +398,15 @@ const toggleDiff = (e: MouseEvent) => {
       </div>
 
       <!-- ── REQUEST tab ── -->
-      <div v-if="detailTab === 'request'" class="details-pane">
-
+      <div
+        v-if="detailTab === 'request'"
+        class="details-pane"
+      >
         <!-- GraphQL info -->
-        <div v-if="gqlInfo" class="details-section gql-section">
+        <div
+          v-if="gqlInfo"
+          class="details-section gql-section"
+        >
           <div class="section-header">
             <span>GraphQL</span>
             <span class="gql-op-type">{{ gqlInfo.operationType }}</span>
@@ -298,13 +417,33 @@ const toggleDiff = (e: MouseEvent) => {
               <span class="kv-val">{{ gqlInfo.operationName ?? '(anonymous)' }}</span>
             </div>
           </div>
-          <div v-if="gqlInfo.variables" class="gql-sub">
-            <div class="section-header" style="margin-top:0.5rem">
+          <div
+            v-if="gqlInfo.variables"
+            class="gql-sub"
+          >
+            <div
+              class="section-header"
+              style="margin-top:0.5rem"
+            >
               <span>Variables</span>
-              <button class="copy-btn" @click.stop="copyToClipboard(gqlInfo.variables)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              <button
+                class="copy-btn"
+                @click.stop="copyToClipboard(gqlInfo.variables)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <rect
+                    x="9"
+                    y="9"
+                    width="13"
+                    height="13"
+                    rx="2"
+                    ry="2"
+                  />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
                 Copy
               </button>
@@ -317,10 +456,24 @@ const toggleDiff = (e: MouseEvent) => {
         <div class="details-section">
           <div class="section-header">
             <span>Headers</span>
-            <button class="copy-btn" @click.stop="copyToClipboard(log.requestHeaders)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <button
+              class="copy-btn"
+              @click.stop="copyToClipboard(log.requestHeaders)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <rect
+                  x="9"
+                  y="9"
+                  width="13"
+                  height="13"
+                  rx="2"
+                  ry="2"
+                />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
               Copy
             </button>
@@ -334,18 +487,40 @@ const toggleDiff = (e: MouseEvent) => {
               <span class="kv-key">{{ k }}</span>
               <span class="kv-val">{{ v }}</span>
             </div>
-            <div v-if="!Object.keys(log.requestHeaders).length" class="empty-message">No headers</div>
+            <div
+              v-if="!Object.keys(log.requestHeaders).length"
+              class="empty-message"
+            >
+              No headers
+            </div>
           </div>
         </div>
 
         <!-- Request body -->
-        <div v-if="hasBody(log.request.body)" class="details-section">
+        <div
+          v-if="hasBody(log.request.body)"
+          class="details-section"
+        >
           <div class="section-header">
             <span>Body <small style="font-weight:400;text-transform:none;letter-spacing:0">({{ formatBytes(log.request.bodySize || 0) }})</small></span>
-            <button class="copy-btn" @click.stop="copyToClipboard(log.request.body)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <button
+              class="copy-btn"
+              @click.stop="copyToClipboard(log.request.body)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <rect
+                  x="9"
+                  y="9"
+                  width="13"
+                  height="13"
+                  rx="2"
+                  ry="2"
+                />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
               Copy
             </button>
@@ -355,11 +530,18 @@ const toggleDiff = (e: MouseEvent) => {
       </div>
 
       <!-- ── RESPONSE tab ── -->
-      <div v-else-if="detailTab === 'response'" class="details-pane">
-
+      <div
+        v-else-if="detailTab === 'response'"
+        class="details-pane"
+      >
         <!-- Status line (HTTP) -->
-        <div v-if="log.type === 'http'" class="details-section">
-          <div class="section-header"><span>Status</span></div>
+        <div
+          v-if="log.type === 'http'"
+          class="details-section"
+        >
+          <div class="section-header">
+            <span>Status</span>
+          </div>
           <div>
             <span :class="['inline-badge', getInlineBadgeClass()]">
               {{ log.http?.status }} {{ log.http?.statusText }}
@@ -368,42 +550,86 @@ const toggleDiff = (e: MouseEvent) => {
         </div>
 
         <!-- WS/SSE info -->
-        <div v-if="log.type === 'websocket'" class="details-section">
-          <div class="section-header"><span>WebSocket</span></div>
+        <div
+          v-if="log.type === 'websocket'"
+          class="details-section"
+        >
+          <div class="section-header">
+            <span>WebSocket</span>
+          </div>
           <div class="kv-table">
-            <div class="kv-row"><span class="kv-key">Event</span><span class="kv-val">{{ log.websocket?.eventType }}</span></div>
-            <div v-if="log.websocket?.direction" class="kv-row">
+            <div class="kv-row">
+              <span class="kv-key">Event</span><span class="kv-val">{{ log.websocket?.eventType }}</span>
+            </div>
+            <div
+              v-if="log.websocket?.direction"
+              class="kv-row"
+            >
               <span class="kv-key">Direction</span>
               <span class="kv-val">{{ log.websocket.direction }}</span>
             </div>
-            <div v-if="log.websocket?.code !== null && log.websocket?.code !== undefined" class="kv-row">
+            <div
+              v-if="log.websocket?.code !== null && log.websocket?.code !== undefined"
+              class="kv-row"
+            >
               <span class="kv-key">Close code</span>
               <span class="kv-val">{{ log.websocket.code }}</span>
             </div>
-            <div v-if="log.websocket?.reason" class="kv-row">
+            <div
+              v-if="log.websocket?.reason"
+              class="kv-row"
+            >
               <span class="kv-key">Reason</span>
               <span class="kv-val">{{ log.websocket.reason }}</span>
             </div>
           </div>
         </div>
 
-        <div v-if="log.type === 'sse'" class="details-section">
-          <div class="section-header"><span>Server-Sent Event</span></div>
+        <div
+          v-if="log.type === 'sse'"
+          class="details-section"
+        >
+          <div class="section-header">
+            <span>Server-Sent Event</span>
+          </div>
           <div class="kv-table">
-            <div class="kv-row"><span class="kv-key">Event type</span><span class="kv-val">{{ log.sse?.eventType || 'message' }}</span></div>
-            <div class="kv-row"><span class="kv-key">Last-Event-ID</span><span class="kv-val">{{ log.sse?.lastEventId || '—' }}</span></div>
-            <div class="kv-row"><span class="kv-key">Ready state</span><span class="kv-val">{{ log.sse?.readyState }}</span></div>
+            <div class="kv-row">
+              <span class="kv-key">Event type</span><span class="kv-val">{{ log.sse?.eventType || 'message' }}</span>
+            </div>
+            <div class="kv-row">
+              <span class="kv-key">Last-Event-ID</span><span class="kv-val">{{ log.sse?.lastEventId || '—' }}</span>
+            </div>
+            <div class="kv-row">
+              <span class="kv-key">Ready state</span><span class="kv-val">{{ log.sse?.readyState }}</span>
+            </div>
           </div>
         </div>
 
         <!-- Response headers -->
-        <div v-if="log.type === 'http'" class="details-section">
+        <div
+          v-if="log.type === 'http'"
+          class="details-section"
+        >
           <div class="section-header">
             <span>Headers</span>
-            <button class="copy-btn" @click.stop="copyToClipboard(log.responseHeaders)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <button
+              class="copy-btn"
+              @click.stop="copyToClipboard(log.responseHeaders)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <rect
+                  x="9"
+                  y="9"
+                  width="13"
+                  height="13"
+                  rx="2"
+                  ry="2"
+                />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
               Copy
             </button>
@@ -417,18 +643,40 @@ const toggleDiff = (e: MouseEvent) => {
               <span class="kv-key">{{ k }}</span>
               <span class="kv-val">{{ v }}</span>
             </div>
-            <div v-if="!Object.keys(log.responseHeaders).length" class="empty-message">No headers</div>
+            <div
+              v-if="!Object.keys(log.responseHeaders).length"
+              class="empty-message"
+            >
+              No headers
+            </div>
           </div>
         </div>
 
         <!-- Response body (только HTTP) -->
-        <div v-if="log.type === 'http' && hasBody(log.response.body)" class="details-section">
+        <div
+          v-if="log.type === 'http' && hasBody(log.response.body)"
+          class="details-section"
+        >
           <div class="section-header">
             <span>Body <small style="font-weight:400;text-transform:none;letter-spacing:0">({{ formatBytes(log.response.bodySize || 0) }})</small></span>
-            <button class="copy-btn" @click.stop="copyToClipboard(log.response.body)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <button
+              class="copy-btn"
+              @click.stop="copyToClipboard(log.response.body)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <rect
+                  x="9"
+                  y="9"
+                  width="13"
+                  height="13"
+                  rx="2"
+                  ry="2"
+                />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
               Copy
             </button>
@@ -437,40 +685,71 @@ const toggleDiff = (e: MouseEvent) => {
         </div>
 
         <!-- WS / SSE data -->
-        <div v-if="(log.type === 'websocket' || log.type === 'sse') && hasBody(log.response.body)" class="details-section">
-          <div class="section-header"><span>Data</span></div>
+        <div
+          v-if="(log.type === 'websocket' || log.type === 'sse') && hasBody(log.response.body)"
+          class="details-section"
+        >
+          <div class="section-header">
+            <span>Data</span>
+          </div>
           <pre class="code-block">{{ formatJSON(log.response.body) }}</pre>
         </div>
       </div>
 
       <!-- ── META tab ── -->
-      <div v-else class="details-pane">
+      <div
+        v-else
+        class="details-pane"
+      >
         <div class="details-section">
-          <div class="section-header"><span>Timing</span></div>
+          <div class="section-header">
+            <span>Timing</span>
+          </div>
           <div class="meta-chips">
             <span class="meta-chip"><strong>Started</strong> {{ new Date(log.startTime).toLocaleString() }}</span>
-            <span v-if="log.endTime" class="meta-chip"><strong>Ended</strong> {{ new Date(log.endTime).toLocaleString() }}</span>
-            <span v-if="log.duration !== null" class="meta-chip"><strong>Duration</strong> {{ log.duration }}ms</span>
+            <span
+              v-if="log.endTime"
+              class="meta-chip"
+            ><strong>Ended</strong> {{ new Date(log.endTime).toLocaleString() }}</span>
+            <span
+              v-if="log.duration !== null"
+              class="meta-chip"
+            ><strong>Duration</strong> {{ log.duration }}ms</span>
           </div>
         </div>
-        <div v-if="log.route" class="details-section">
-          <div class="section-header"><span>Route</span></div>
+        <div
+          v-if="log.route"
+          class="details-section"
+        >
+          <div class="section-header">
+            <span>Route</span>
+          </div>
           <div class="meta-chips">
             <span class="meta-chip meta-chip-route">{{ log.route }}</span>
           </div>
         </div>
         <div class="details-section">
-          <div class="section-header"><span>Transport</span></div>
+          <div class="section-header">
+            <span>Transport</span>
+          </div>
           <div class="meta-chips">
             <span class="meta-chip"><strong>Client</strong> {{ log.metadata.clientType }}</span>
             <span class="meta-chip"><strong>Type</strong> {{ log.type }}</span>
-            <span v-if="log.metadata.redirected" class="meta-chip"><strong>Redirected</strong></span>
-            <span v-if="log.metadata.retryCount" class="meta-chip"><strong>Retries</strong> {{ log.metadata.retryCount }}</span>
-            <span class="meta-chip" style="font-family:monospace;font-size:10px">{{ log.id }}</span>
+            <span
+              v-if="log.metadata.redirected"
+              class="meta-chip"
+            ><strong>Redirected</strong></span>
+            <span
+              v-if="log.metadata.retryCount"
+              class="meta-chip"
+            ><strong>Retries</strong> {{ log.metadata.retryCount }}</span>
+            <span
+              class="meta-chip"
+              style="font-family:monospace;font-size:10px"
+            >{{ log.id }}</span>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>

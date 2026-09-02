@@ -79,22 +79,50 @@ const resetFilters = () => {
 
 <template>
   <div class="filter-bar">
-
     <!-- Левая колонка: переключатели протоколов -->
     <div class="filter-type-tabs">
-      <button :class="{ active: filters.type === 'all' }"            @click="setType('all')"      >All</button>
-      <button :class="{ active: filters.type === 'http',      'active-http': filters.type === 'http' }"      @click="setType('http')"      >HTTP</button>
-      <button :class="{ active: filters.type === 'websocket', 'active-ws':   filters.type === 'websocket' }" @click="setType('websocket')" >WS</button>
-      <button :class="{ active: filters.type === 'sse',       'active-sse':  filters.type === 'sse' }"       @click="setType('sse')"       >SSE</button>
+      <button
+        :class="{ active: filters.type === 'all' }"
+        @click="setType('all')"
+      >
+        All
+      </button>
+      <button
+        :class="{ active: filters.type === 'http', 'active-http': filters.type === 'http' }"
+        @click="setType('http')"
+      >
+        HTTP
+      </button>
+      <button
+        :class="{ active: filters.type === 'websocket', 'active-ws': filters.type === 'websocket' }"
+        @click="setType('websocket')"
+      >
+        WS
+      </button>
+      <button
+        :class="{ active: filters.type === 'sse', 'active-sse': filters.type === 'sse' }"
+        @click="setType('sse')"
+      >
+        SSE
+      </button>
     </div>
 
     <!-- Центральная колонка: два ряда фильтров -->
     <div class="filter-center">
       <!-- Ряд 1: поиск по URL + маршрут (если есть хотя бы один лог с route) -->
       <div :class="['filter-search-wrap', { 'is-regex': filters.url.startsWith('regex:') }]">
-        <svg class="filter-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
+        <svg
+          class="filter-search-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <circle
+            cx="11"
+            cy="11"
+            r="8"
+          />
+          <path d="m21 21-4.35-4.35" />
         </svg>
         <input
           :value="filters.url"
@@ -102,14 +130,26 @@ const resetFilters = () => {
           placeholder="URL... or regex:pattern"
           class="filter-input"
           @input="setUrl"
-        />
-        <span v-if="filters.url.startsWith('regex:')" class="filter-regex-badge" title="Regex mode">RX</span>
+        >
+        <span
+          v-if="filters.url.startsWith('regex:')"
+          class="filter-regex-badge"
+          title="Regex mode"
+        >RX</span>
       </div>
 
       <!-- Ряд 1б: поиск по маршруту (показывается только если роутер передан) -->
-      <div v-if="hasRoutes" :class="['filter-search-wrap', { 'is-regex': filters.route.startsWith('regex:') }]">
-        <svg class="filter-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/>
+      <div
+        v-if="hasRoutes"
+        :class="['filter-search-wrap', { 'is-regex': filters.route.startsWith('regex:') }]"
+      >
+        <svg
+          class="filter-search-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3" />
         </svg>
         <input
           :value="filters.route"
@@ -117,8 +157,12 @@ const resetFilters = () => {
           placeholder="Route... or regex:pattern"
           class="filter-input"
           @input="setRoute"
-        />
-        <span v-if="filters.route.startsWith('regex:')" class="filter-regex-badge" title="Regex mode">RX</span>
+        >
+        <span
+          v-if="filters.route.startsWith('regex:')"
+          class="filter-regex-badge"
+          title="Regex mode"
+        >RX</span>
       </div>
 
       <!-- Ряд 2: детальные фильтры -->
@@ -130,8 +174,12 @@ const resetFilters = () => {
             placeholder="Body... or regex:pattern"
             class="filter-input-plain filter-body-input"
             @input="setBody"
-          />
-          <span v-if="filters.body.startsWith('regex:')" class="filter-regex-badge" title="Regex mode">RX</span>
+          >
+          <span
+            v-if="filters.body.startsWith('regex:')"
+            class="filter-regex-badge"
+            title="Regex mode"
+          >RX</span>
         </div>
 
         <FilterSelect
@@ -155,9 +203,12 @@ const resetFilters = () => {
           placeholder="≥ ms"
           class="filter-input-plain filter-input-sm"
           @input="setMinDuration"
-        />
+        >
 
-        <button :class="['filter-toggle', { active: filters.hasError }]" @click="toggleErrors">
+        <button
+          :class="['filter-toggle', { active: filters.hasError }]"
+          @click="toggleErrors"
+        >
           <span class="toggle-dot" />
           Errors
         </button>
@@ -174,13 +225,19 @@ const resetFilters = () => {
     </div>
 
     <!-- Правая колонка: кнопка Reset -->
-    <button class="filter-reset" @click="resetFilters">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-        <path d="M3 3v5h5"/>
+    <button
+      class="filter-reset"
+      @click="resetFilters"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+      >
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+        <path d="M3 3v5h5" />
       </svg>
       Reset
     </button>
-
   </div>
 </template>

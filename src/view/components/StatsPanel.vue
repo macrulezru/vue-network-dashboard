@@ -108,14 +108,16 @@ const truncateUrl = (url: string, maxLength: number): string =>
 
 <template>
   <div class="stats-panel">
-
     <!-- Traffic sparkline -->
     <div class="stats-section">
       <h4>
         Traffic
         <span class="sparkline-peak">peak {{ sparkline.peak }} req / 5s</span>
       </h4>
-      <div ref="sparklineWrapRef" class="sparkline-wrap">
+      <div
+        ref="sparklineWrapRef"
+        class="sparkline-wrap"
+      >
         <svg
           :viewBox="`0 0 ${sparkline.w} ${sparkline.h}`"
           class="sparkline-svg"
@@ -132,29 +134,58 @@ const truncateUrl = (url: string, maxLength: number): string =>
     <!-- Overview cards (3 × 2) -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-value">{{ stats.totalRequests }}</div>
-        <div class="stat-label">Total Requests</div>
+        <div class="stat-value">
+          {{ stats.totalRequests }}
+        </div>
+        <div class="stat-label">
+          Total Requests
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-value" :style="stats.totalErrors ? 'color:#f85149' : ''">{{ stats.totalErrors }}</div>
-        <div class="stat-label">Errors</div>
-        <div class="stat-sub">{{ errorRate }}% error rate</div>
+        <div
+          class="stat-value"
+          :style="stats.totalErrors ? 'color:#f85149' : ''"
+        >
+          {{ stats.totalErrors }}
+        </div>
+        <div class="stat-label">
+          Errors
+        </div>
+        <div class="stat-sub">
+          {{ errorRate }}% error rate
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ stats.averageDuration.toFixed(0) }}<small style="font-size:12px;font-weight:500;color:#8b949e">ms</small></div>
-        <div class="stat-label">Avg Duration</div>
+        <div class="stat-value">
+          {{ stats.averageDuration.toFixed(0) }}<small style="font-size:12px;font-weight:500;color:#8b949e">ms</small>
+        </div>
+        <div class="stat-label">
+          Avg Duration
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ formatBytes(stats.totalDataSent) }}</div>
-        <div class="stat-label">Data Sent</div>
+        <div class="stat-value">
+          {{ formatBytes(stats.totalDataSent) }}
+        </div>
+        <div class="stat-label">
+          Data Sent
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ formatBytes(stats.totalDataReceived) }}</div>
-        <div class="stat-label">Data Received</div>
+        <div class="stat-value">
+          {{ formatBytes(stats.totalDataReceived) }}
+        </div>
+        <div class="stat-label">
+          Data Received
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ stats.sseEventCount }}</div>
-        <div class="stat-label">SSE Events</div>
+        <div class="stat-value">
+          {{ stats.sseEventCount }}
+        </div>
+        <div class="stat-label">
+          SSE Events
+        </div>
       </div>
     </div>
 
@@ -162,15 +193,27 @@ const truncateUrl = (url: string, maxLength: number): string =>
     <div class="stats-section">
       <h4>By Method</h4>
       <div class="dist-list">
-        <div v-for="(count, method) in stats.requestsByMethod" :key="method" class="dist-item">
+        <div
+          v-for="(count, method) in stats.requestsByMethod"
+          :key="method"
+          class="dist-item"
+        >
           <span :class="['dist-badge', getMethodClass(String(method))]">{{ method }}</span>
           <span class="dist-count">{{ count }}</span>
           <div class="dist-bar-track">
-            <div class="dist-bar-fill" :style="{ width: getPercentage(count, stats.totalRequests) + '%' }" />
+            <div
+              class="dist-bar-fill"
+              :style="{ width: getPercentage(count, stats.totalRequests) + '%' }"
+            />
           </div>
           <span class="dist-pct">{{ getPercentage(count, stats.totalRequests) }}%</span>
         </div>
-        <div v-if="!Object.keys(stats.requestsByMethod).length" class="empty-message">No data yet</div>
+        <div
+          v-if="!Object.keys(stats.requestsByMethod).length"
+          class="empty-message"
+        >
+          No data yet
+        </div>
       </div>
     </div>
 
@@ -178,7 +221,11 @@ const truncateUrl = (url: string, maxLength: number): string =>
     <div class="stats-section">
       <h4>By Status</h4>
       <div class="dist-list">
-        <div v-for="(count, status) in stats.requestsByStatus" :key="status" class="dist-item">
+        <div
+          v-for="(count, status) in stats.requestsByStatus"
+          :key="status"
+          class="dist-item"
+        >
           <span :class="['dist-badge', getStatusGroupClass(String(status))]">{{ status }}</span>
           <span class="dist-count">{{ count }}</span>
           <div class="dist-bar-track">
@@ -189,35 +236,59 @@ const truncateUrl = (url: string, maxLength: number): string =>
           </div>
           <span class="dist-pct">{{ getPercentage(count, stats.totalRequests) }}%</span>
         </div>
-        <div v-if="!Object.keys(stats.requestsByStatus).length" class="empty-message">No data yet</div>
+        <div
+          v-if="!Object.keys(stats.requestsByStatus).length"
+          class="empty-message"
+        >
+          No data yet
+        </div>
       </div>
     </div>
 
     <!-- Slowest requests -->
-    <div v-if="stats.slowestRequests.length" class="stats-section">
+    <div
+      v-if="stats.slowestRequests.length"
+      class="stats-section"
+    >
       <h4>Slowest Requests</h4>
       <div class="perf-list">
-        <div v-for="req in stats.slowestRequests.slice(0, 5)" :key="req.id" class="perf-item">
+        <div
+          v-for="req in stats.slowestRequests.slice(0, 5)"
+          :key="req.id"
+          class="perf-item"
+        >
           <span :class="['dist-badge', getMethodClass(req.method)]">{{ req.method }}</span>
-          <span class="perf-url" :title="req.url">{{ truncateUrl(req.url, 60) }}</span>
+          <span
+            class="perf-url"
+            :title="req.url"
+          >{{ truncateUrl(req.url, 60) }}</span>
           <span class="perf-value">{{ req.duration }}ms</span>
         </div>
       </div>
     </div>
 
     <!-- Largest requests -->
-    <div v-if="stats.largestRequests.length" class="stats-section">
+    <div
+      v-if="stats.largestRequests.length"
+      class="stats-section"
+    >
       <h4>Largest Responses</h4>
       <div class="perf-list">
-        <div v-for="req in stats.largestRequests.slice(0, 5)" :key="req.id" class="perf-item">
+        <div
+          v-for="req in stats.largestRequests.slice(0, 5)"
+          :key="req.id"
+          class="perf-item"
+        >
           <span :class="['dist-badge', getMethodClass(req.method)]">{{ req.method }}</span>
-          <span class="perf-url" :title="req.url">{{ truncateUrl(req.url, 60) }}</span>
+          <span
+            class="perf-url"
+            :title="req.url"
+          >{{ truncateUrl(req.url, 60) }}</span>
           <span class="perf-value">
             {{ formatBytes((req.request.bodySize || 0) + (req.response.bodySize || 0)) }}
           </span>
         </div>
       </div>
     </div>
-
   </div>
 </template>

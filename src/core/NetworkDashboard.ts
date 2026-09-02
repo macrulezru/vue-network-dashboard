@@ -665,8 +665,8 @@ export class NetworkDashboard {
   }
 
   private loadMockGroups = (): void => {
-    // Try to load from localStorage
     if (this.options.persistToStorage) {
+      // Try to load from localStorage
       try {
         const saved = localStorage.getItem(DEFAULT_MOCK_GROUPS_KEY)
         if (saved) {
@@ -680,29 +680,29 @@ export class NetworkDashboard {
       } catch (error) {
         console.error('[NetworkDashboard] Failed to load mock groups:', error)
       }
-    }
 
-    // Migration from old mock format (single list)
-    const oldMocksKey = `${DEFAULT_STORAGE_KEY}:mocks`
-    try {
-      const oldMocks = localStorage.getItem(oldMocksKey)
-      if (oldMocks) {
-        const mocks = JSON.parse(oldMocks) as MockRule[]
-        if (mocks.length) {
-          this.mockGroups = [{
-            id: generateId(),
-            name: 'default',
-            enabled: true,
-            isOpened: true,
-            rules: mocks
-          }]
-          this.saveMockGroups()
-          localStorage.removeItem(oldMocksKey)
-          return
+      // Migration from old mock format (single list)
+      const oldMocksKey = `${DEFAULT_STORAGE_KEY}:mocks`
+      try {
+        const oldMocks = localStorage.getItem(oldMocksKey)
+        if (oldMocks) {
+          const mocks = JSON.parse(oldMocks) as MockRule[]
+          if (mocks.length) {
+            this.mockGroups = [{
+              id: generateId(),
+              name: 'default',
+              enabled: true,
+              isOpened: true,
+              rules: mocks
+            }]
+            this.saveMockGroups()
+            localStorage.removeItem(oldMocksKey)
+            return
+          }
         }
+      } catch (error) {
+        console.error('[NetworkDashboard] Failed to migrate old mocks:', error)
       }
-    } catch (error) {
-      console.error('[NetworkDashboard] Failed to migrate old mocks:', error)
     }
 
     // Default: create a 'default' group

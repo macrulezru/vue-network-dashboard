@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./dist/.nuxt-dts",
+    "outDir": "./dist/.nuxt-dts",
+    "types": ["node"]
+  },
+  "include": ["src/nuxt.ts"]
+}
