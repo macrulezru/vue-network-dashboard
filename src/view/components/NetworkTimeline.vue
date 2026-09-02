@@ -46,17 +46,49 @@ const tickLabels = computed(() => {
 
 <template>
   <div class="timeline-panel">
-    <div v-if="timeline.entries.length === 0" class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
+    <div
+      v-if="timeline.entries.length === 0"
+      class="empty-state"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+      >
+        <rect
+          x="3"
+          y="4"
+          width="18"
+          height="18"
+          rx="2"
+          ry="2"
+        />
+        <line
+          x1="16"
+          y1="2"
+          x2="16"
+          y2="6"
+        />
+        <line
+          x1="8"
+          y1="2"
+          x2="8"
+          y2="6"
+        />
+        <line
+          x1="3"
+          y1="10"
+          x2="21"
+          y2="10"
+        />
       </svg>
       <p>No completed requests to display</p>
     </div>
 
-    <div v-else class="timeline-body">
+    <div
+      v-else
+      class="timeline-body"
+    >
       <!-- Tick axis -->
       <div class="timeline-axis">
         <div class="timeline-labels-col" />
@@ -83,7 +115,10 @@ const tickLabels = computed(() => {
           class="timeline-row"
         >
           <!-- Label -->
-          <div class="timeline-label" :title="log.url">
+          <div
+            class="timeline-label"
+            :title="log.url"
+          >
             <span :class="['tl-method', log.type === 'websocket' ? 'websocket' : log.type === 'sse' ? 'sse' : (log.method?.toLowerCase() ?? 'default')]">
               {{ log.method }}
             </span>

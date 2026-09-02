@@ -55,13 +55,33 @@ const send = () => {
 </script>
 
 <template>
-  <div class="modal-backdrop" @mousedown.self="emit('close')">
+  <div
+    class="modal-backdrop"
+    @mousedown.self="emit('close')"
+  >
     <div class="replay-modal">
       <div class="modal-header">
         <span>Edit &amp; Replay</span>
-        <button class="btn-icon" @click="emit('close')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        <button
+          class="btn-icon"
+          @click="emit('close')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <line
+              x1="18"
+              y1="6"
+              x2="6"
+              y2="18"
+            /><line
+              x1="6"
+              y1="6"
+              x2="18"
+              y2="18"
+            />
           </svg>
         </button>
       </div>
@@ -69,31 +89,85 @@ const send = () => {
       <div class="modal-body">
         <!-- URL + method row -->
         <div class="replay-url-row">
-          <select v-model="editMethod" class="replay-method-select">
-            <option v-for="m in ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS']" :key="m">{{ m }}</option>
+          <select
+            v-model="editMethod"
+            class="replay-method-select"
+          >
+            <option
+              v-for="m in ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS']"
+              :key="m"
+            >
+              {{ m }}
+            </option>
           </select>
-          <input v-model="editUrl" class="replay-url-input" placeholder="URL" spellcheck="false" />
+          <input
+            v-model="editUrl"
+            class="replay-url-input"
+            placeholder="URL"
+            spellcheck="false"
+          >
         </div>
 
         <!-- Headers -->
-        <div class="replay-section-label">Headers</div>
+        <div class="replay-section-label">
+          Headers
+        </div>
         <div class="replay-headers">
-          <div v-for="(h, i) in editHeaders" :key="i" class="replay-header-row">
-            <input v-model="h.key"   class="replay-hdr-key"   placeholder="Name" spellcheck="false" />
-            <input v-model="h.value" class="replay-hdr-val"   placeholder="Value" spellcheck="false" />
-            <button class="btn-icon danger" @click="removeHeader(i)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          <div
+            v-for="(h, i) in editHeaders"
+            :key="i"
+            class="replay-header-row"
+          >
+            <input
+              v-model="h.key"
+              class="replay-hdr-key"
+              placeholder="Name"
+              spellcheck="false"
+            >
+            <input
+              v-model="h.value"
+              class="replay-hdr-val"
+              placeholder="Value"
+              spellcheck="false"
+            >
+            <button
+              class="btn-icon danger"
+              @click="removeHeader(i)"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="6"
+                  y2="18"
+                /><line
+                  x1="6"
+                  y1="6"
+                  x2="18"
+                  y2="18"
+                />
               </svg>
             </button>
           </div>
-          <button class="replay-add-header" @click="addHeader">+ Add header</button>
+          <button
+            class="replay-add-header"
+            @click="addHeader"
+          >
+            + Add header
+          </button>
         </div>
 
         <!-- Body -->
         <div class="replay-section-label">
           Body
-          <span v-if="!isBodyValid" class="replay-json-warn">Invalid JSON</span>
+          <span
+            v-if="!isBodyValid"
+            class="replay-json-warn"
+          >Invalid JSON</span>
         </div>
         <textarea
           v-model="editBody"
@@ -105,8 +179,18 @@ const send = () => {
       </div>
 
       <div class="modal-footer">
-        <button class="form-btn cancel" @click="emit('close')">Cancel</button>
-        <button class="form-btn save" @click="send">Send</button>
+        <button
+          class="form-btn cancel"
+          @click="emit('close')"
+        >
+          Cancel
+        </button>
+        <button
+          class="form-btn save"
+          @click="send"
+        >
+          Send
+        </button>
       </div>
     </div>
   </div>

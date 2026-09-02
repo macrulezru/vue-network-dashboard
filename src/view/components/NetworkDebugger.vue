@@ -53,7 +53,7 @@ const getInitialTheme = (): Theme => {
   try {
     const stored = localStorage.getItem(THEME_KEY)
     if (stored === 'dark' || stored === 'light' || stored === 'auto') return stored
-  } catch {}
+  } catch { /* localStorage unavailable */ }
   const fromPlugin = pluginUi?.theme
   if (fromPlugin === 'dark' || fromPlugin === 'light' || fromPlugin === 'auto') return fromPlugin
   return 'dark'
@@ -71,7 +71,7 @@ const resolvedTheme = computed((): 'dark' | 'light' =>
 )
 
 watch(theme, (val) => {
-  try { localStorage.setItem(THEME_KEY, val) } catch {}
+  try { localStorage.setItem(THEME_KEY, val) } catch { /* localStorage unavailable */ }
 })
 
 const cycleTheme = () => {
@@ -188,7 +188,7 @@ const filteredLogs = computed(() => {
 const FILTER_STORAGE_KEY = 'vue-network-dashboard:filters'
 
 watch(activeFilters, (val) => {
-  try { sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(val)) } catch {}
+  try { sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(val)) } catch { /* sessionStorage unavailable */ }
 }, { deep: true })
 
 // ── Virtual scroll ─────────────────────────────────────────────────────────────
@@ -673,7 +673,7 @@ onMounted(() => {
       filters.value       = restored
       activeFilters.value = restored
     }
-  } catch {}
+  } catch { /* sessionStorage unavailable or malformed data */ }
 })
 
 onUnmounted(() => {
@@ -696,400 +696,725 @@ defineExpose({
 
 <template>
   <Teleport to="body">
-    <div class="nd-root" :data-theme="resolvedTheme">
-    <!-- Panel -->
-    <div v-if="isVisible" :class="['network-debugger', { fullscreen: isFullscreen }]" :style="panelStyle">
-      <!-- Resize handles (скрыты в fullscreen) -->
-      <template v-if="!isFullscreen">
-        <div class="resize-handle resize-n"  @mousedown.stop="startResize('n',  $event)" />
-        <div class="resize-handle resize-e"  @mousedown.stop="startResize('e',  $event)" />
-        <div class="resize-handle resize-s"  @mousedown.stop="startResize('s',  $event)" />
-        <div class="resize-handle resize-w"  @mousedown.stop="startResize('w',  $event)" />
-        <div class="resize-handle resize-ne" @mousedown.stop="startResize('ne', $event)" />
-        <div class="resize-handle resize-se" @mousedown.stop="startResize('se', $event)" />
-        <div class="resize-handle resize-sw" @mousedown.stop="startResize('sw', $event)" />
-        <div class="resize-handle resize-nw" @mousedown.stop="startResize('nw', $event)" />
-      </template>
-
-      <div ref="containerRef" class="debugger-container">
-
-        <!-- Header — drag handle -->
-        <div :class="['debugger-header', { 'is-dragging': isDragging }]" @mousedown="startDrag">
-          <div class="header-left">
-            <div class="header-logo">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-              </svg>
-              Network
-            </div>
-            <div class="header-count">
-              <span class="count-filtered">{{ filteredLogs.length }}</span>
-              <span class="count-divider">/</span>
-              <span>{{ logs.length }}</span>
-              <span v-if="pendingCount > 0" class="count-pending">{{ pendingCount }} pending</span>
-            </div>
-          </div>
-
-          <div class="header-right">
-            <!-- Theme toggle -->
-            <button
-              class="btn-icon"
-              :title="`Theme: ${theme} — click to cycle (dark → light → auto)`"
-              @click.stop="cycleTheme"
-            >
-              <!-- Dark: moon -->
-              <svg v-if="theme === 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-              <!-- Light: sun -->
-              <svg v-else-if="theme === 'light'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-              <!-- Auto: monitor -->
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M8 21h8M12 17v4"/>
-              </svg>
-            </button>
-
-            <!-- Pin -->
-            <button
-              :class="['btn-icon', { active: isPinned }]"
-              :title="isPinned ? 'Unpin panel' : 'Pin panel'"
-              @click="isPinned = !isPinned"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="m12 17 1-9"/>
-                <path d="M9 10.5a3 3 0 0 0 6 0"/>
-                <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
-            </button>
-
-            <!-- Fullscreen -->
-            <button
-              :class="['btn-icon', { active: isFullscreen }]"
-              :title="isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'"
-              @click.stop="toggleFullscreen"
-            >
-              <svg v-if="!isFullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-              </svg>
-            </button>
-
-            <!-- Close -->
-            <button class="btn-icon" title="Close (Ctrl+Shift+D)" @click="isVisible = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="debugger-tabs">
-          <button :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
-            Logs
-          </button>
-          <button :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
-            Statistics
-          </button>
-          <button :class="{ active: activeTab === 'timeline' }" @click="activeTab = 'timeline'">
-            Timeline
-          </button>
-          <button :class="{ active: activeTab === 'mocks' }" @click="activeTab = 'mocks'">
-            Mocks
-            <span v-if="activeMocksCount > 0" class="tab-badge">
-              {{ activeMocksCount }}
-            </span>
-          </button>
-          <button :class="{ active: activeTab === 'breakpoints' }" @click="activeTab = 'breakpoints'">
-            Breakpoints
-            <span v-if="dashboard.activeBreakpoints.value.length" class="tab-badge tab-badge-warn">
-              {{ dashboard.activeBreakpoints.value.length }}
-            </span>
-          </button>
-          <button :class="{ active: activeTab === 'compare' }" @click="activeTab = 'compare'">
-            Compare
-          </button>
-        </div>
-
-        <!-- Logs sub-toolbar -->
-        <template v-if="activeTab === 'logs'">
-          <div class="logs-toolbar">
-            <!-- Grouping toggle -->
-            <button
-              :class="['btn-icon-label', { active: grouped }]"
-              title="Group by endpoint"
-              @click="grouped = !grouped"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="2" y="7" width="20" height="14" rx="2"/>
-                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                <line x1="12" y1="12" x2="12" y2="16"/>
-                <line x1="10" y1="14" x2="14" y2="14"/>
-              </svg>
-              Group
-            </button>
-
-            <!-- Diff mode toggle -->
-            <button
-              :class="['btn-icon-label', { active: diffMode }]"
-              :title="diffMode ? `Diff mode on — ${diffSet.size}/2 selected (click to exit)` : 'Enable diff mode to compare two requests'"
-              @click="toggleDiffMode"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
-              </svg>
-              <template v-if="diffMode">{{ diffSet.size }}/2</template>
-              <template v-else>Diff</template>
-            </button>
-
-            <div class="logs-toolbar-divider" />
-
-            <!-- Import HAR -->
-            <button class="btn-icon-label" title="Import HAR file" @click.stop="triggerImport">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              Import
-            </button>
-            <input
-              ref="fileInputRef"
-              type="file"
-              accept=".har,.json"
-              style="display:none"
-              @change="onFileSelected"
-            />
-
-            <!-- Export -->
-            <button class="btn-icon-label" title="Export logs" @click.stop="showExportModal = true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Export
-            </button>
-
-            <div class="logs-toolbar-divider" />
-
-            <!-- Throttle -->
-            <select
-              class="throttle-select"
-              :class="{ active: throttleMs > 0 }"
-              :value="throttleMs"
-              title="Network throttling"
-              @change="setThrottlePreset(+($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="p in THROTTLE_PRESETS" :key="p.ms" :value="p.ms">{{ p.label }}</option>
-            </select>
-
-            <div class="logs-toolbar-spacer" />
-
-            <!-- Clear -->
-            <button class="btn-icon-label danger" title="Clear logs" @click="handleClearLogs">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
-              </svg>
-              Clear
-            </button>
-          </div>
-
-          <FilterBar v-model:filters="filters" :logs="sourceLogs" />
-
-          <!-- Import banner -->
-          <div v-if="importedLogs" class="import-banner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            Imported session
-            <span class="import-source">{{ importFileName }}</span>
-            <span class="import-count">{{ importedLogs.length }} entries</span>
-            <button class="import-clear" @click="clearImport">&times;</button>
-          </div>
+    <div
+      class="nd-root"
+      :data-theme="resolvedTheme"
+    >
+      <!-- Panel -->
+      <div
+        v-if="isVisible"
+        :class="['network-debugger', { fullscreen: isFullscreen }]"
+        :style="panelStyle"
+      >
+        <!-- Resize handles (скрыты в fullscreen) -->
+        <template v-if="!isFullscreen">
+          <div
+            class="resize-handle resize-n"
+            @mousedown.stop="startResize('n', $event)"
+          />
+          <div
+            class="resize-handle resize-e"
+            @mousedown.stop="startResize('e', $event)"
+          />
+          <div
+            class="resize-handle resize-s"
+            @mousedown.stop="startResize('s', $event)"
+          />
+          <div
+            class="resize-handle resize-w"
+            @mousedown.stop="startResize('w', $event)"
+          />
+          <div
+            class="resize-handle resize-ne"
+            @mousedown.stop="startResize('ne', $event)"
+          />
+          <div
+            class="resize-handle resize-se"
+            @mousedown.stop="startResize('se', $event)"
+          />
+          <div
+            class="resize-handle resize-sw"
+            @mousedown.stop="startResize('sw', $event)"
+          />
+          <div
+            class="resize-handle resize-nw"
+            @mousedown.stop="startResize('nw', $event)"
+          />
         </template>
 
-        <!-- Content -->
-        <div class="debugger-content">
-
-          <!-- ── Logs ── -->
-          <div v-if="activeTab === 'logs'" class="logs-panel">
-
-            <!-- Diff panel when 2 selected -->
-            <div v-if="diffLogs" class="diff-overlay">
-              <div class="diff-overlay-header">
-                <span>Diff view</span>
-                <button class="btn-icon" @click="closeDiff">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
+        <div
+          ref="containerRef"
+          class="debugger-container"
+        >
+          <!-- Header — drag handle -->
+          <div
+            :class="['debugger-header', { 'is-dragging': isDragging }]"
+            @mousedown="startDrag"
+          >
+            <div class="header-left">
+              <div class="header-logo">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                Network
               </div>
-              <div class="diff-overlay-body">
-                <DiffPanel :log-a="diffLogs[0]" :log-b="diffLogs[1]" />
+              <div class="header-count">
+                <span class="count-filtered">{{ filteredLogs.length }}</span>
+                <span class="count-divider">/</span>
+                <span>{{ logs.length }}</span>
+                <span
+                  v-if="pendingCount > 0"
+                  class="count-pending"
+                >{{ pendingCount }} pending</span>
               </div>
             </div>
 
-            <div v-if="filteredLogs.length === 0" class="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            <div class="header-right">
+              <!-- Theme toggle -->
+              <button
+                class="btn-icon"
+                :title="`Theme: ${theme} — click to cycle (dark → light → auto)`"
+                @click.stop="cycleTheme"
+              >
+                <!-- Dark: moon -->
+                <svg
+                  v-if="theme === 'dark'"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+                <!-- Light: sun -->
+                <svg
+                  v-else-if="theme === 'light'"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="5"
+                  />
+                  <line
+                    x1="12"
+                    y1="1"
+                    x2="12"
+                    y2="3"
+                  />
+                  <line
+                    x1="12"
+                    y1="21"
+                    x2="12"
+                    y2="23"
+                  />
+                  <line
+                    x1="4.22"
+                    y1="4.22"
+                    x2="5.64"
+                    y2="5.64"
+                  />
+                  <line
+                    x1="18.36"
+                    y1="18.36"
+                    x2="19.78"
+                    y2="19.78"
+                  />
+                  <line
+                    x1="1"
+                    y1="12"
+                    x2="3"
+                    y2="12"
+                  />
+                  <line
+                    x1="21"
+                    y1="12"
+                    x2="23"
+                    y2="12"
+                  />
+                  <line
+                    x1="4.22"
+                    y1="19.78"
+                    x2="5.64"
+                    y2="18.36"
+                  />
+                  <line
+                    x1="18.36"
+                    y1="5.64"
+                    x2="19.78"
+                    y2="4.22"
+                  />
+                </svg>
+                <!-- Auto: monitor -->
+                <svg
+                  v-else
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <rect
+                    x="2"
+                    y="3"
+                    width="20"
+                    height="14"
+                    rx="2"
+                  />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+              </button>
+
+              <!-- Pin -->
+              <button
+                :class="['btn-icon', { active: isPinned }]"
+                :title="isPinned ? 'Unpin panel' : 'Pin panel'"
+                @click="isPinned = !isPinned"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="m12 17 1-9" />
+                  <path d="M9 10.5a3 3 0 0 0 6 0" />
+                  <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <line
+                    x1="12"
+                    y1="17"
+                    x2="12"
+                    y2="21"
+                  />
+                </svg>
+              </button>
+
+              <!-- Fullscreen -->
+              <button
+                :class="['btn-icon', { active: isFullscreen }]"
+                :title="isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'"
+                @click.stop="toggleFullscreen"
+              >
+                <svg
+                  v-if="!isFullscreen"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+                <svg
+                  v-else
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                </svg>
+              </button>
+
+              <!-- Close -->
+              <button
+                class="btn-icon"
+                title="Close (Ctrl+Shift+D)"
+                @click="isVisible = false"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <line
+                    x1="18"
+                    y1="6"
+                    x2="6"
+                    y2="18"
+                  />
+                  <line
+                    x1="6"
+                    y1="6"
+                    x2="18"
+                    y2="18"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="debugger-tabs">
+            <button
+              :class="{ active: activeTab === 'logs' }"
+              @click="activeTab = 'logs'"
+            >
+              Logs
+            </button>
+            <button
+              :class="{ active: activeTab === 'stats' }"
+              @click="activeTab = 'stats'"
+            >
+              Statistics
+            </button>
+            <button
+              :class="{ active: activeTab === 'timeline' }"
+              @click="activeTab = 'timeline'"
+            >
+              Timeline
+            </button>
+            <button
+              :class="{ active: activeTab === 'mocks' }"
+              @click="activeTab = 'mocks'"
+            >
+              Mocks
+              <span
+                v-if="activeMocksCount > 0"
+                class="tab-badge"
+              >
+                {{ activeMocksCount }}
+              </span>
+            </button>
+            <button
+              :class="{ active: activeTab === 'breakpoints' }"
+              @click="activeTab = 'breakpoints'"
+            >
+              Breakpoints
+              <span
+                v-if="dashboard.activeBreakpoints.value.length"
+                class="tab-badge tab-badge-warn"
+              >
+                {{ dashboard.activeBreakpoints.value.length }}
+              </span>
+            </button>
+            <button
+              :class="{ active: activeTab === 'compare' }"
+              @click="activeTab = 'compare'"
+            >
+              Compare
+            </button>
+          </div>
+
+          <!-- Logs sub-toolbar -->
+          <template v-if="activeTab === 'logs'">
+            <div class="logs-toolbar">
+              <!-- Grouping toggle -->
+              <button
+                :class="['btn-icon-label', { active: grouped }]"
+                title="Group by endpoint"
+                @click="grouped = !grouped"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <rect
+                    x="2"
+                    y="7"
+                    width="20"
+                    height="14"
+                    rx="2"
+                  />
+                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                  <line
+                    x1="12"
+                    y1="12"
+                    x2="12"
+                    y2="16"
+                  />
+                  <line
+                    x1="10"
+                    y1="14"
+                    x2="14"
+                    y2="14"
+                  />
+                </svg>
+                Group
+              </button>
+
+              <!-- Diff mode toggle -->
+              <button
+                :class="['btn-icon-label', { active: diffMode }]"
+                :title="diffMode ? `Diff mode on — ${diffSet.size}/2 selected (click to exit)` : 'Enable diff mode to compare two requests'"
+                @click="toggleDiffMode"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
+                </svg>
+                <template v-if="diffMode">
+                  {{ diffSet.size }}/2
+                </template>
+                <template v-else>
+                  Diff
+                </template>
+              </button>
+
+              <div class="logs-toolbar-divider" />
+
+              <!-- Import HAR -->
+              <button
+                class="btn-icon-label"
+                title="Import HAR file"
+                @click.stop="triggerImport"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line
+                    x1="12"
+                    y1="3"
+                    x2="12"
+                    y2="15"
+                  />
+                </svg>
+                Import
+              </button>
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept=".har,.json"
+                style="display:none"
+                @change="onFileSelected"
+              >
+
+              <!-- Export -->
+              <button
+                class="btn-icon-label"
+                title="Export logs"
+                @click.stop="showExportModal = true"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line
+                    x1="12"
+                    y1="15"
+                    x2="12"
+                    y2="3"
+                  />
+                </svg>
+                Export
+              </button>
+
+              <div class="logs-toolbar-divider" />
+
+              <!-- Throttle -->
+              <select
+                class="throttle-select"
+                :class="{ active: throttleMs > 0 }"
+                :value="throttleMs"
+                title="Network throttling"
+                @change="setThrottlePreset(+($event.target as HTMLSelectElement).value)"
+              >
+                <option
+                  v-for="p in THROTTLE_PRESETS"
+                  :key="p.ms"
+                  :value="p.ms"
+                >
+                  {{ p.label }}
+                </option>
+              </select>
+
+              <div class="logs-toolbar-spacer" />
+
+              <!-- Clear -->
+              <button
+                class="btn-icon-label danger"
+                title="Clear logs"
+                @click="handleClearLogs"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4h6v2" />
+                </svg>
+                Clear
+              </button>
+            </div>
+
+            <FilterBar
+              v-model:filters="filters"
+              :logs="sourceLogs"
+            />
+
+            <!-- Import banner -->
+            <div
+              v-if="importedLogs"
+              class="import-banner"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line
+                  x1="12"
+                  y1="3"
+                  x2="12"
+                  y2="15"
+                />
               </svg>
-              <p>No network requests captured</p>
+              Imported session
+              <span class="import-source">{{ importFileName }}</span>
+              <span class="import-count">{{ importedLogs.length }} entries</span>
+              <button
+                class="import-clear"
+                @click="clearImport"
+              >
+                &times;
+              </button>
             </div>
+          </template>
 
-            <!-- Grouped view -->
-            <div v-else-if="grouped" class="logs-list">
-              <div v-for="group in groupedLogs" :key="group.key" class="log-group">
-                <div class="log-group-header" @click="toggleGroup(group.key)">
-                  <span class="log-chevron">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <polyline :points="expandedGroups.has(group.key) ? '18 15 12 9 6 15' : '9 18 15 12 9 6'"/>
+          <!-- Content -->
+          <div class="debugger-content">
+            <!-- ── Logs ── -->
+            <div
+              v-if="activeTab === 'logs'"
+              class="logs-panel"
+            >
+              <!-- Diff panel when 2 selected -->
+              <div
+                v-if="diffLogs"
+                class="diff-overlay"
+              >
+                <div class="diff-overlay-header">
+                  <span>Diff view</span>
+                  <button
+                    class="btn-icon"
+                    @click="closeDiff"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <line
+                        x1="18"
+                        y1="6"
+                        x2="6"
+                        y2="18"
+                      /><line
+                        x1="6"
+                        y1="6"
+                        x2="18"
+                        y2="18"
+                      />
                     </svg>
-                  </span>
-                  <span :class="['method', group.method.toLowerCase()]">{{ group.method }}</span>
-                  <span class="log-url" :title="group.url">{{ group.url }}</span>
-                  <span class="group-count">{{ group.count }}</span>
+                  </button>
                 </div>
-                <div v-if="expandedGroups.has(group.key)">
-                  <LogEntry
-                    v-for="log in group.logs"
-                    :key="log.id"
-                    :log="log"
-                    :expanded="expandedLogs.has(log.id)"
-                    :diff-selected="diffSet.has(log.id)"
-                    :diff-mode="diffMode"
-                    :url-filter="activeFilters.url"
-                    :duplicate-count="getDuplicateCount(log)"
-                    @toggle-details="toggleDetails"
-                    @toggle-diff="toggleDiff"
-                    @create-mock="createMockFromLog"
-                    @open-replay="openReplayModal"
+                <div class="diff-overlay-body">
+                  <DiffPanel
+                    :log-a="diffLogs[0]"
+                    :log-b="diffLogs[1]"
                   />
                 </div>
               </div>
-            </div>
 
-            <!-- Flat view (виртуальный скролл) -->
-            <div v-else class="logs-list">
-              <LogEntry
-                v-for="log in displayedLogs"
-                :key="log.id"
-                :log="log"
-                :expanded="expandedLogs.has(log.id)"
-                :diff-selected="diffSet.has(log.id)"
-                :diff-mode="diffMode"
-                :url-filter="activeFilters.url"
-                :duplicate-count="getDuplicateCount(log)"
-                @toggle-details="toggleDetails"
-                @toggle-diff="toggleDiff"
-                @create-mock="createMockFromLog"
-                @open-replay="openReplayModal"
-              />
               <div
-                v-if="displayCount < filteredLogs.length"
-                ref="sentinelRef"
-                class="load-sentinel"
-              />
+                v-if="filteredLogs.length === 0"
+                class="empty-state"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                <p>No network requests captured</p>
+              </div>
+
+              <!-- Grouped view -->
+              <div
+                v-else-if="grouped"
+                class="logs-list"
+              >
+                <div
+                  v-for="group in groupedLogs"
+                  :key="group.key"
+                  class="log-group"
+                >
+                  <div
+                    class="log-group-header"
+                    @click="toggleGroup(group.key)"
+                  >
+                    <span class="log-chevron">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <polyline :points="expandedGroups.has(group.key) ? '18 15 12 9 6 15' : '9 18 15 12 9 6'" />
+                      </svg>
+                    </span>
+                    <span :class="['method', group.method.toLowerCase()]">{{ group.method }}</span>
+                    <span
+                      class="log-url"
+                      :title="group.url"
+                    >{{ group.url }}</span>
+                    <span class="group-count">{{ group.count }}</span>
+                  </div>
+                  <div v-if="expandedGroups.has(group.key)">
+                    <LogEntry
+                      v-for="log in group.logs"
+                      :key="log.id"
+                      :log="log"
+                      :expanded="expandedLogs.has(log.id)"
+                      :diff-selected="diffSet.has(log.id)"
+                      :diff-mode="diffMode"
+                      :url-filter="activeFilters.url"
+                      :duplicate-count="getDuplicateCount(log)"
+                      @toggle-details="toggleDetails"
+                      @toggle-diff="toggleDiff"
+                      @create-mock="createMockFromLog"
+                      @open-replay="openReplayModal"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Flat view (виртуальный скролл) -->
+              <div
+                v-else
+                class="logs-list"
+              >
+                <LogEntry
+                  v-for="log in displayedLogs"
+                  :key="log.id"
+                  :log="log"
+                  :expanded="expandedLogs.has(log.id)"
+                  :diff-selected="diffSet.has(log.id)"
+                  :diff-mode="diffMode"
+                  :url-filter="activeFilters.url"
+                  :duplicate-count="getDuplicateCount(log)"
+                  @toggle-details="toggleDetails"
+                  @toggle-diff="toggleDiff"
+                  @create-mock="createMockFromLog"
+                  @open-replay="openReplayModal"
+                />
+                <div
+                  v-if="displayCount < filteredLogs.length"
+                  ref="sentinelRef"
+                  class="load-sentinel"
+                />
+              </div>
+            </div>
+
+            <!-- ── Stats ── -->
+            <StatsPanel
+              v-else-if="activeTab === 'stats'"
+              :stats="stats"
+              :logs="sourceLogs"
+            />
+
+            <!-- ── Timeline ── -->
+            <NetworkTimeline
+              v-else-if="activeTab === 'timeline'"
+              :logs="filteredLogs"
+            />
+
+            <!-- ── Mocks ── -->
+            <MockPanel v-else-if="activeTab === 'mocks'" />
+
+            <!-- ── Compare ── -->
+            <SessionComparePanel v-else-if="activeTab === 'compare'" />
+
+            <!-- ── Breakpoints ── -->
+            <BreakpointPanel v-else-if="activeTab === 'breakpoints'" />
+          </div>
+
+          <!-- Footer -->
+          <div class="debugger-footer">
+            <div class="footer-left">
+              <span class="footer-stat">
+                Requests <span class="footer-val">{{ stats.totalRequests }}</span>
+              </span>
+              <span class="footer-stat">
+                Errors <span :class="['footer-val', { error: stats.totalErrors > 0 }]">{{ stats.totalErrors }}</span>
+              </span>
+              <span class="footer-stat">
+                Avg <span class="footer-val">{{ stats.averageDuration.toFixed(0) }}ms</span>
+              </span>
+              <span
+                v-if="pendingCount > 0"
+                class="footer-stat pending-indicator"
+              >
+                <span class="pending-dot" /> {{ pendingCount }} in-flight
+              </span>
+            </div>
+            <div class="footer-right">
+              <span class="footer-stat">
+                ↑ {{ formatBytes(stats.totalDataSent) }}
+              </span>
+              <span class="footer-stat">
+                ↓ {{ formatBytes(stats.totalDataReceived) }}
+              </span>
             </div>
           </div>
 
-          <!-- ── Stats ── -->
-          <StatsPanel v-else-if="activeTab === 'stats'" :stats="stats" :logs="sourceLogs" />
+          <!-- Export Modal -->
+          <ExportModal
+            v-if="showExportModal"
+            :logs="logs"
+            @close="showExportModal = false"
+            @export="handleExport"
+          />
 
-          <!-- ── Timeline ── -->
-          <NetworkTimeline v-else-if="activeTab === 'timeline'" :logs="filteredLogs" />
-
-          <!-- ── Mocks ── -->
-          <MockPanel v-else-if="activeTab === 'mocks'" />
-
-          <!-- ── Compare ── -->
-          <SessionComparePanel v-else-if="activeTab === 'compare'" />
-
-          <!-- ── Breakpoints ── -->
-          <BreakpointPanel v-else-if="activeTab === 'breakpoints'" />
-
+          <!-- Replay Modal -->
+          <ReplayModal
+            v-if="showReplayModal && replayLog"
+            :log="replayLog"
+            @close="showReplayModal = false"
+            @replay="handleReplay"
+          />
         </div>
-
-        <!-- Footer -->
-        <div class="debugger-footer">
-          <div class="footer-left">
-            <span class="footer-stat">
-              Requests <span class="footer-val">{{ stats.totalRequests }}</span>
-            </span>
-            <span class="footer-stat">
-              Errors <span :class="['footer-val', { error: stats.totalErrors > 0 }]">{{ stats.totalErrors }}</span>
-            </span>
-            <span class="footer-stat">
-              Avg <span class="footer-val">{{ stats.averageDuration.toFixed(0) }}ms</span>
-            </span>
-            <span v-if="pendingCount > 0" class="footer-stat pending-indicator">
-              <span class="pending-dot" /> {{ pendingCount }} in-flight
-            </span>
-          </div>
-          <div class="footer-right">
-            <span class="footer-stat">
-              ↑ {{ formatBytes(stats.totalDataSent) }}
-            </span>
-            <span class="footer-stat">
-              ↓ {{ formatBytes(stats.totalDataReceived) }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Export Modal -->
-        <ExportModal
-          v-if="showExportModal"
-          :logs="logs"
-          @close="showExportModal = false"
-          @export="handleExport"
-        />
-
-        <!-- Replay Modal -->
-        <ReplayModal
-          v-if="showReplayModal && replayLog"
-          :log="replayLog"
-          @close="showReplayModal = false"
-          @replay="handleReplay"
-        />
-
       </div>
-    </div>
 
-    <!-- Toggle FAB -->
-    <button
-      v-if="!isVisible"
-      class="debugger-toggle"
-      title="Open Network Dashboard (Ctrl+Shift+D)"
-      @click="isVisible = true"
-    >
-      <span class="toggle-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-        </svg>
-      </span>
-      <span class="toggle-count">{{ logs.length }}</span>
-      <span v-if="hasErrors" class="toggle-error-dot" />
-    </button>
+      <!-- Toggle FAB -->
+      <button
+        v-if="!isVisible"
+        class="debugger-toggle"
+        title="Open Network Dashboard (Ctrl+Shift+D)"
+        @click="isVisible = true"
+      >
+        <span class="toggle-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+        </span>
+        <span class="toggle-count">{{ logs.length }}</span>
+        <span
+          v-if="hasErrors"
+          class="toggle-error-dot"
+        />
+      </button>
     </div><!-- /.nd-root -->
   </Teleport>
 </template>

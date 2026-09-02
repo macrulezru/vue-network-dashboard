@@ -388,7 +388,7 @@ export class LogStore implements ILogStore {
         const resHeaders = Object.entries(log.responseHeaders)
           .map(([name, value]) => ({ name, value }))
 
-        let queryString: Array<{ name: string; value: string }> = []
+        const queryString: Array<{ name: string; value: string }> = []
         try {
           const u = new URL(log.url)
           u.searchParams.forEach((value, name) => queryString.push({ name, value }))

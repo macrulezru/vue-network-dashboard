@@ -115,17 +115,16 @@ export class SSEInterceptor {
     const hookedTypes  = new Set<string>()
     const originalAdd  = es.addEventListener.bind(es)
 
-    const self = this
-    ;(es as any).addEventListener = function(
+    ;(es as any).addEventListener = (
       type: string,
       listener: EventListenerOrEventListenerObject | null,
       options?: boolean | AddEventListenerOptions
-    ) {
+    ) => {
       if (!builtinTypes.has(type) && !hookedTypes.has(type) && listener !== null) {
         hookedTypes.add(type)
         originalAdd(type, (event: Event) => {
           if (event instanceof MessageEvent) {
-            self.logMessage(es, context, event, type)
+            this.logMessage(es, context, event, type)
           }
         })
       }

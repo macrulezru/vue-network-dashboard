@@ -117,7 +117,7 @@ export class XHRInterceptor {
 
     const mockRule = this.options.getMock?.(url, method, requestBody, requestHeaders) ?? null
     if (mockRule) {
-      this.handleMock(logEntry, mockRule, startTime)
+      this.handleMock(logEntry, mockRule)
       return
     }
 
@@ -143,8 +143,7 @@ export class XHRInterceptor {
 
   private handleMock = (
     logEntry: UnifiedLogEntry,
-    rule: MockRule,
-    startTime: number
+    rule: MockRule
   ): void => {
     const delay = rule.response.delay ?? 0
     setTimeout(() => {

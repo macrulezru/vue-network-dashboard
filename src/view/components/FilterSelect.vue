@@ -37,23 +37,46 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true))
 </script>
 
 <template>
-  <div ref="rootRef" :class="['filter-select', { open: isOpen, 'has-value': !!modelValue }]">
-    <div class="filter-select-trigger" @click="toggle">
+  <div
+    ref="rootRef"
+    :class="['filter-select', { open: isOpen, 'has-value': !!modelValue }]"
+  >
+    <div
+      class="filter-select-trigger"
+      @click="toggle"
+    >
       <span :class="['filter-select-value', { placeholder: !modelValue }]">
         {{ modelValue || placeholder }}
       </span>
-      <button v-if="modelValue" class="filter-select-clear" @click="clear">&times;</button>
-      <svg v-else class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <polyline points="6 9 12 15 18 9"/>
+      <button
+        v-if="modelValue"
+        class="filter-select-clear"
+        @click="clear"
+      >
+        &times;
+      </button>
+      <svg
+        v-else
+        class="filter-select-arrow"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+      >
+        <polyline points="6 9 12 15 18 9" />
       </svg>
     </div>
-    <div v-if="isOpen" class="filter-select-dropdown">
+    <div
+      v-if="isOpen"
+      class="filter-select-dropdown"
+    >
       <button
         v-for="opt in options"
         :key="opt"
         :class="['filter-select-option', { active: opt === modelValue }]"
         @click="select(opt)"
-      >{{ opt }}</button>
+      >
+        {{ opt }}
+      </button>
     </div>
   </div>
 </template>

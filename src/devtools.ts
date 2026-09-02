@@ -35,7 +35,7 @@ export async function setupDevtools(
   // Bail out if not in a browser context
   if (typeof window === 'undefined') return
 
-  let setupDevtoolsPlugin: Function | undefined
+  let setupDevtoolsPlugin: ((descriptor: Record<string, unknown>, setupFn: (api: unknown) => void) => void) | undefined
 
   try {
     // Dynamic import keeps @vue/devtools-api as an optional peer dep.
@@ -80,7 +80,6 @@ export async function setupDevtools(
           .slice(0, 200)
           .map(log => {
             const status = log.http?.status
-            const isError = log.error.occurred || (status != null && status >= 400)
 
             const tags: any[] = []
             if (status != null) {

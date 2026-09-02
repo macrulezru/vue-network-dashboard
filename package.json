@@ -1,12 +1,12 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Network monitoring for Vue 3 — intercepts Fetch, XHR, WebSocket and SSE traffic, sanitizes secrets and shows reactive logs and stats.",
   "author": "macrulez <macrulezru@gmail.com> (https://macrulez.ru/en)",
   "license": "MIT",
   "homepage": "https://npm.vuecraft.ru/en/packages/vue-network-dashboard/",
   "type": "module",
-  "main": "./dist/vue-network-dashboard.umd.js",
+  "main": "./dist/vue-network-dashboard.umd.cjs",
   "module": "./dist/vue-network-dashboard.esm.js",
   "types": "./dist/types/index.d.ts",
   "engines": {
@@ -16,9 +16,10 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/vue-network-dashboard.esm.js",
-      "require": "./dist/vue-network-dashboard.umd.js"
+      "require": "./dist/vue-network-dashboard.umd.cjs"
     },
     "./nuxt": {
+      "types": "./dist/nuxt.d.mts",
       "import": "./dist/nuxt.mjs"
     },
     "./dist/vue-network-dashboard.css": "./dist/vue-network-dashboard.css"
@@ -31,7 +32,7 @@
   "scripts": {
     "dev": "vite --open",
     "build": "vite build && npm run build:nuxt",
-    "build:nuxt": "esbuild src/nuxt.ts --bundle=false --platform=node --format=esm --outfile=dist/nuxt.mjs",
+    "build:nuxt": "esbuild src/nuxt.ts --bundle=false --platform=node --format=esm --outfile=dist/nuxt.mjs && tsc --project tsconfig.nuxt.json && node -e \"const fs=require('fs');fs.copyFileSync('dist/.nuxt-dts/nuxt.d.ts','dist/nuxt.d.mts');fs.mkdirSync('dist/core',{recursive:true});fs.copyFileSync('dist/.nuxt-dts/core/types.d.ts','dist/core/types.d.ts');fs.rmSync('dist/.nuxt-dts',{recursive:true,force:true})\"",
     "preview": "vite preview --open",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
@@ -69,6 +70,7 @@
   },
   "devDependencies": {
     "@nuxt/kit": "^4.4.2",
+    "@nuxt/schema": "^4.5.2",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
@@ -86,7 +88,7 @@
     "stylelint": "^17.6.0",
     "stylelint-config-standard-scss": "^17.0.0",
     "stylelint-scss": "^7.0.0",
-    "typescript": "^5.3.0",
+    "typescript": "^5.9.3",
     "vite": "^5.0.0",
     "vite-plugin-dts": "^3.6.0",
     "vitest": "^1.0.0",

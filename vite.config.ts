@@ -32,7 +32,17 @@ export default defineConfig(({ command }): UserConfig => {
         entry: resolve(__dirname, 'src/index.ts'),
         name: 'VueNetworkDashboard',
         formats: ['es', 'umd'],
-        fileName: (format) => `vue-network-dashboard.${format === 'es' ? 'esm' : 'umd'}.js`
+        // .cjs, not .js, for the UMD build — this package has "type": "module"
+        // in package.json, so Node treats every plain .js file here as ESM
+        // regardless of content. The UMD build is written as a CJS/UMD IIFE
+        // (require("vue") inside, no `export` statements) — under a bare
+        // .js extension, require('vue-network-dashboard') resolved to this
+        // file via the exports map's `require` condition, but Node's
+        // require-of-ESM interop found no `export`s and silently returned an
+        // empty object. .cjs is always treated as CommonJS by Node no matter
+        // what "type" the package declares, which is exactly what a UMD/CJS
+        // build needs.
+        fileName: (format) => `vue-network-dashboard.${format === 'es' ? 'esm.js' : 'umd.cjs'}`
       },
       rollupOptions: {
         external: [
