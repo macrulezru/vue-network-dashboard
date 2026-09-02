@@ -62,6 +62,8 @@ export interface UnifiedLogEntry {
     pending?: boolean      // true while request is in-flight
     mocked?: boolean       // true if the response was returned by a mock rule
     connectionId?: string  // WebSocket: shared ID for all events of one connection
+    /** Time to first byte in ms (HTTP only). Set when `metrics.calculateTTFB` is enabled. */
+    ttfb?: number | null
   }
 
   /** Vue Router route path at the moment the request was initiated */

@@ -102,10 +102,11 @@ export class FetchInterceptor {
 
     try {
       const response = await this.originalFetch(...args)
-      const endTime = Date.now()
+      const ttfbTime = Date.now()
 
       const responseBody = await this.extractResponseBody(response)
       const responseHeaders = this.extractResponseHeaders(response)
+      const endTime = Date.now()
 
       const enrichedEntry = this.options.formatter.http.formatResponse(logEntry, {
         status: response.status,
@@ -113,7 +114,8 @@ export class FetchInterceptor {
         responseHeaders,
         responseBody,
         endTime,
-        redirected: response.redirected
+        redirected: response.redirected,
+        ttfbTime
       })
 
       if (this.options.onUpdateLog) {

@@ -19,6 +19,8 @@ interface XHRLogContext {
   requestHeaders: Record<string, string>
   requestBody: any
   logEntry: UnifiedLogEntry
+  /** Timestamp when readyState reached HEADERS_RECEIVED (2), used for TTFB. */
+  headersReceivedTime?: number
 }
 
 interface XHROpenData {
@@ -193,6 +195,12 @@ export class XHRInterceptor {
       }
     }
 
+    xhr.addEventListener('readystatechange', () => {
+      if (xhr.readyState === XMLHttpRequest.HEADERS_RECEIVED && context.headersReceivedTime === undefined) {
+        context.headersReceivedTime = Date.now()
+      }
+    })
+
     xhr.addEventListener('load', () => {
       complete(this.processResponse(context, xhr, Date.now()))
       cleanup()
@@ -240,7 +248,8 @@ export class XHRInterceptor {
       statusText: xhr.statusText,
       responseHeaders,
       responseBody,
-      endTime
+      endTime,
+      ttfbTime: context.headersReceivedTime
     })
   }
 

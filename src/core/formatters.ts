@@ -72,6 +72,10 @@ export interface FormatSSEParams {
 export interface FormatOptions {
   sanitizeHeaders?: (headers: Record<string, string>) => Record<string, string>
   sanitizeBody?: (body: any) => any
+  /** Track Time To First Byte for HTTP requests. Default: false. */
+  calculateTTFB?: boolean
+  /** Increment `metadata.retryCount` on repeated requests to the same method+URL. Default: false. */
+  trackRetries?: boolean
 }
 
 /**
@@ -80,10 +84,14 @@ export interface FormatOptions {
  */
 export class HTTPFormatter {
   private options: FormatOptions
+  /** Consecutive-failure streak per "METHOD url" key, used by `trackRetries`. */
+  private retryCounts: Map<string, number> = new Map()
 
   constructor(options: FormatOptions = {}) {
     this.options = options
   }
+
+  private retryKey = (method: string, url: string): string => `${method.toUpperCase()} ${url}`
 
   /**
    * Create base HTTP log entry from request data
@@ -96,7 +104,11 @@ export class HTTPFormatter {
     const requestBodyType = getDataType(requestBody)
     
     const requestHeaders = this.sanitizeHeaders(params.requestHeaders)
-    
+
+    const retryCount = this.options.trackRetries
+      ? this.retryCounts.get(this.retryKey(params.method, params.url)) ?? 0
+      : 0
+
     return {
       id,
       type: 'http',
@@ -135,8 +147,9 @@ export class HTTPFormatter {
       metadata: {
         clientType: params.clientType,
         redirected: params.redirected || false,
-        retryCount: 0,
-        timestamp: new Date().toISOString()
+        retryCount,
+        timestamp: new Date().toISOString(),
+        ttfb: null
       }
     }
   }
@@ -154,6 +167,8 @@ export class HTTPFormatter {
       responseBody: any
       endTime: number
       redirected?: boolean
+      /** Timestamp when response headers were received (before the body was read). */
+      ttfbTime?: number
     }
   ): UnifiedLogEntry => {
     const duration = params.endTime - logEntry.startTime
@@ -161,7 +176,20 @@ export class HTTPFormatter {
     const responseBodyRaw = safeStringify(responseBody)
     const responseBodySize = calculateSize(responseBody)
     const responseBodyType = getContentType(params.responseHeaders)
-    
+
+    if (this.options.trackRetries) {
+      const key = this.retryKey(logEntry.method, logEntry.url)
+      if (params.status >= 400) {
+        this.retryCounts.set(key, (this.retryCounts.get(key) ?? 0) + 1)
+      } else {
+        this.retryCounts.delete(key)
+      }
+    }
+
+    const ttfb = this.options.calculateTTFB && params.ttfbTime != null
+      ? params.ttfbTime - logEntry.startTime
+      : null
+
     return {
       ...logEntry,
       endTime: params.endTime,
@@ -181,7 +209,8 @@ export class HTTPFormatter {
       metadata: {
         ...logEntry.metadata,
         redirected: params.redirected || false,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ttfb
       }
     }
   }
@@ -196,7 +225,12 @@ export class HTTPFormatter {
   ): UnifiedLogEntry => {
     const logEntry = this.formatRequest(params)
     const duration = endTime - logEntry.startTime
-    
+
+    if (this.options.trackRetries) {
+      const key = this.retryKey(params.method, params.url)
+      this.retryCounts.set(key, (this.retryCounts.get(key) ?? 0) + 1)
+    }
+
     return {
       ...logEntry,
       endTime,
