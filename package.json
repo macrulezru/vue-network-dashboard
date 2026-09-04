@@ -1,6 +1,6 @@
 {
   "name": "vue-network-dashboard",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Network monitoring for Vue 3 — intercepts Fetch, XHR, WebSocket and SSE traffic, sanitizes secrets and shows reactive logs and stats.",
   "author": "macrulez <macrulezru@gmail.com> (https://macrulez.ru/en)",
   "license": "MIT",
