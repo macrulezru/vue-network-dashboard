@@ -70,6 +70,76 @@ app.mount('#app')
 
 That's it. All Fetch, XHR, WebSocket, and SSE calls are now captured.
 
+### More examples
+
+#### Every request is already logged — you just query it
+
+fetch, XHR, WebSocket, and SSE are intercepted automatically, no manual instrumentation — `getLogsByStatus` and `subscribe` give you a ready filter and a live feed of new entries.
+
+```ts
+import { useNetworkDashboard } from 'vue-network-dashboard'
+
+const { getLogsByStatus, subscribe } = useNetworkDashboard()
+
+const failedRequests = getLogsByStatus([500, 599])
+
+const unsubscribe = subscribe((entry) => {
+  if (entry.error.occurred) {
+    console.warn('Request failed:', entry.url)
+  }
+})
+
+// Every fetch/XHR/WebSocket/SSE call is logged automatically, no manual
+// instrumentation — just query what already happened or subscribe to new
+// entries as they come in.
+```
+
+#### Tokens and passwords never end up in the log
+
+`Authorization`, `Cookie`, `password`, and a dozen similar fields are redacted automatically before anything is written — your own field list only extends the built-in protection, never replaces it.
+
+```ts
+import NetworkDashboard from 'vue-network-dashboard'
+
+app.use(NetworkDashboard, {
+  sanitization: {
+    sensitiveHeaders: ['x-custom-token'],
+    sensitiveFields: ['pin', 'securityAnswer'],
+    maskFields: ['nationalId'],
+  },
+})
+
+// Authorization, Cookie, password, token, and a dozen similar fields are
+// redacted automatically before anything is written — even without this
+// option, these lists only extend the built-in protection, never replace it.
+```
+
+#### Fake an API response without touching the backend
+
+`addMock` intercepts a request by URL pattern and returns your own response — with artificial latency if you want it. Mocked entries in the log get a "mock" badge, and it works for both fetch and XHR.
+
+```ts
+import { useNetworkDashboard } from 'vue-network-dashboard'
+
+const { addMock, removeMock } = useNetworkDashboard()
+
+const rule = addMock({
+  name: 'Mock /api/users',
+  urlPattern: '/api/users',
+  method: 'GET',
+  response: {
+    status: 200,
+    body: [{ id: 1, name: 'Alice' }],
+    delay: 200, // optional artificial latency in ms
+  },
+})
+
+removeMock(rule.id)
+
+// Mocked responses are logged normally, tagged with metadata.mocked = true
+// and a "mock" badge — no real network call is made.
+```
+
 ---
 
 ## Documentation & links
