@@ -8,43 +8,41 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 
 ## Features
 
-| Feature                      | Description                                                                                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Full Coverage**            | Intercepts Fetch API, XMLHttpRequest (XHR), WebSocket, and Server-Sent Events                                                                            |
-| **Unified Format**           | All network events share one consistent log structure regardless of transport type                                                                       |
-| **Security First**           | Auto-redacts sensitive headers, removes sensitive body fields, masks PII                                                                                 |
-| **Rich Metrics**             | Tracks request/response sizes, duration, data transfer volumes, per-method and per-status breakdowns                                                     |
-| **Vue 3 Native**             | Uses Vue `ref` for reactive storage — no Pinia or Vuex required                                                                                          |
-| **Zero Configuration**       | Works immediately after `app.use()` with sensible defaults                                                                                               |
-| **Pending Requests**         | In-flight requests appear as live entries and update in place on completion — just like browser DevTools                                                 |
-| **Mock Groups**              | Organise mock rules into named groups — enable/disable a whole group at once, collapse/expand, rename inline, import/export as JSON                      |
-| **Session Compare**          | Load two HAR files side by side and see an instant diff — added, removed, and changed requests with per-field deltas                                     |
-| **Mock Mode**                | Define URL/method rules to intercept requests and return custom responses without touching the backend                                                   |
-| **HAR Export / Import**      | Export a session as an HTTP Archive file, or load a recorded `.har` file to inspect it                                                                    |
-| **Waterfall Timeline**       | Visual bar chart of all requests on a shared time axis                                                                                                   |
-| **Diff View**                | Select any two log entries to see a side-by-side diff of headers and body                                                                                |
-| **Copy as cURL**             | One-click copy of any HTTP request as a ready-to-run `curl` command (with headers and body)                                                              |
-| **Replay with Editing**      | Edit URL, method, headers, and body before re-sending any request — JSON body is validated inline                                                        |
-| **Response Transform**       | Modify real responses on the fly without a full mock — override status, merge/delete JSON body fields, add headers                                       |
-| **Network Throttling**       | Simulate slow connections with built-in presets (Fast 3G / Slow 3G / Offline-ish)                                                                        |
-| **GraphQL Detection**        | Automatically detects GraphQL operations in POST requests; shows operation type, name, and variables                                                     |
-| **N+1 Detection**            | Highlights duplicate requests to the same URL+method within a 5-second window with an orange ×N badge                                                    |
-| **Breakpoints**              | Pause any outgoing request before it is sent — inspect and edit URL, method, headers, and body — then release or cancel                                  |
-| **OpenAPI Import**           | Load an OpenAPI 3.x or Swagger 2.x JSON spec to auto-generate a full set of mock rules from all `paths`                                                  |
-| **Built-in Debugger UI**     | Draggable, resizable panel with filters, 3-tab detail view, stats, timeline, mock editor, and export                                                     |
-| **Nuxt 3 Module**            | First-class Nuxt integration with auto-registration and `useNetworkDashboard()` auto-import                                                              |
-| **Vue DevTools**             | Optional inspector tab and timeline layer in Vue DevTools (browser extension + vite-plugin-vue-devtools)                                                 |
-| **Sentry / OpenTelemetry**   | Ready-made adapters for error tracking and distributed tracing                                                                                           |
-| **TypeScript**               | Full type definitions included                                                                                                                           |
+- **Full Coverage** — intercepts Fetch API, XMLHttpRequest (XHR), WebSocket, and Server-Sent Events
+- **Unified Format** — all network events share one consistent log structure regardless of transport type
+- **Security First** — auto-redacts sensitive headers, removes sensitive body fields, masks PII
+- **Rich Metrics** — tracks request/response sizes, duration, data transfer volumes, per-method and per-status breakdowns
+- **Vue 3 Native** — uses Vue `ref` for reactive storage — no Pinia or Vuex required
+- **Zero Configuration** — works immediately after `app.use()` with sensible defaults
+- **Pending Requests** — in-flight requests appear as live entries and update in place on completion — just like browser DevTools
+- **Mock Groups** — organise mock rules into named groups — enable/disable a whole group at once, collapse/expand, rename inline, import/export as JSON
+- **Session Compare** — load two HAR files side by side and see an instant diff — added, removed, and changed requests with per-field deltas
+- **Mock Mode** — define URL/method rules to intercept requests and return custom responses without touching the backend
+- **HAR Export / Import** — export a session as an HTTP Archive file, or load a recorded `.har` file to inspect it
+- **Waterfall Timeline** — visual bar chart of all requests on a shared time axis
+- **Diff View** — select any two log entries to see a side-by-side diff of headers and body
+- **Copy as cURL** — one-click copy of any HTTP request as a ready-to-run `curl` command (with headers and body)
+- **Replay with Editing** — edit URL, method, headers, and body before re-sending any request — JSON body is validated inline
+- **Response Transform** — modify real responses on the fly without a full mock — override status, merge/delete JSON body fields, add headers
+- **Network Throttling** — simulate slow connections with built-in presets (Fast 3G / Slow 3G / Offline-ish)
+- **GraphQL Detection** — automatically detects GraphQL operations in POST requests; shows operation type, name, and variables
+- **N+1 Detection** — highlights duplicate requests to the same URL+method within a 5-second window with an orange ×N badge
+- **Breakpoints** — pause any outgoing request before it is sent — inspect and edit URL, method, headers, and body — then release or cancel
+- **OpenAPI Import** — load an OpenAPI 3.x or Swagger 2.x JSON spec to auto-generate a full set of mock rules from all `paths`
+- **Built-in Debugger UI** — draggable, resizable panel with filters, 3-tab detail view, stats, timeline, mock editor, and export
+- **Nuxt 3 Module** — first-class Nuxt integration with auto-registration and `useNetworkDashboard()` auto-import
+- **Vue DevTools** — optional inspector tab and timeline layer in Vue DevTools (browser extension + vite-plugin-vue-devtools)
+- **Sentry / OpenTelemetry** — ready-made adapters for error tracking and distributed tracing
+- **TypeScript** — full type definitions included
 
 ---
 
 ## Installation
 
 | Environment | Minimum version |
-| ------------- | ------------------ |
-| Vue         | `3.0+`              |
-| Node.js     | `18+`               |
+| ----------- | --------------- |
+| Vue         | `3.0+`          |
+| Node.js     | `18+`           |
 
 `@vue/devtools-api` (`≥ 6.5`) is needed only if you call `setupDevtools()` — it is not a formal peer dependency. The Nuxt module additionally requires Nuxt `3+`.
 
