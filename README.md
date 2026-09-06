@@ -37,6 +37,17 @@ Universal network monitoring plugin for Vue 3. Intercepts all HTTP (Fetch / XHR)
 
 ---
 
+## When you'd reach for this
+
+Opening the Network tab, finding the right request among a hundred similar ones, copying the body into a separate tool by hand — and doing it all over again after every code change: vue-network-dashboard turns that routine into one built-in screen.
+
+- **A request works in Postman but not in the app** — The difference might be in headers the browser adds on its own, the order requests fire in, or state built up over the session. It's easier to test directly against the app's real traffic than to rebuild the request by hand in a separate tool.
+- **The response you need doesn't exist yet** — The backend isn't built yet, or it returns something completely different from what a specific scenario needs to test — the response can be swapped on the fly instead of waiting for the server to catch up.
+- **An access token shouldn't end up in a log** — Copying request history for a teammate or attaching it to a bug report shouldn't mean leaking someone's password or auth token along with it. Fields like these can be hidden automatically, instead of scrubbed by hand before every share.
+- **A bug only shows up on a slow connection** — A race condition, requests firing in the wrong order, or a forgotten loading spinner only become visible when the network is slow and unstable — conditions like that can be simulated right on a fast development machine, no trip to a bad-signal location required.
+
+---
+
 ## Installation
 
 | Environment | Minimum version |
