@@ -54,6 +54,11 @@ export const createOpenTelemetryAdapter = (
 
   return {
     onLog(entry: UnifiedLogEntry) {
+      // onLog fires once with the pending snapshot (right when a fetch/XHR
+      // request starts) and again with the completed entry once it
+      // resolves — skip the pending call so each request produces exactly
+      // one span, built from the real outcome (status/duration/error).
+      if (entry.metadata?.pending) return
       if (httpOnly && entry.type !== 'http') return
 
       const spanName = `${entry.method} ${stripQuery(entry.url)}`

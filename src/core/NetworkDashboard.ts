@@ -325,6 +325,25 @@ export class NetworkDashboard {
    */
   private handleUpdateLog = (id: string, updates: Partial<UnifiedLogEntry>): void => {
     this.store.updateLog(id, updates)
+
+    // Fire the onLog callback again with the now-complete entry. Without
+    // this, callbacks.onLog only ever saw the initial `pending: true`
+    // snapshot (http.status/duration/error always null) for every fetch/XHR
+    // request — the real outcome was applied to the store in-place but
+    // never reached the callback, silently breaking any consumer of
+    // onLog (including the bundled Sentry/OpenTelemetry adapters, which
+    // both read entry.http.status/entry.duration/entry.error).
+    if (this.options.callbacks?.onLog) {
+      const updatedEntry = this.store.getLogs().find(log => log.id === id)
+      if (updatedEntry) {
+        try {
+          this.options.callbacks.onLog(updatedEntry)
+        } catch (error) {
+          console.error('[NetworkDashboard] Callback error:', error)
+        }
+      }
+    }
+
     if (this.options.persistToStorage) {
       this.saveToStorage()
     }
