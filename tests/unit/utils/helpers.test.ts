@@ -217,8 +217,19 @@ describe('helpers', () => {
     it('should handle malformed headers', () => {
       const headersStr = 'Malformed Header\nContent-Type: application/json'
       const result = parseHeaders(headersStr)
-      
+
       expect(result).toEqual({
+        'Content-Type': 'application/json'
+      })
+    })
+
+    it('should keep the full value when it contains its own ": " separator', () => {
+      const headersStr =
+        'WWW-Authenticate: Bearer error="invalid_token", error_description="Token expired: try again"\nContent-Type: application/json'
+      const result = parseHeaders(headersStr)
+
+      expect(result).toEqual({
+        'WWW-Authenticate': 'Bearer error="invalid_token", error_description="Token expired: try again"',
         'Content-Type': 'application/json'
       })
     })

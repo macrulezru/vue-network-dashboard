@@ -100,9 +100,9 @@ export const parseHeaders = (headers: string): Record<string, string> => {
   const lines = headers.trim().split(/[\r\n]+/)
   
   for (const line of lines) {
-    const parts = line.split(': ')
-    if (parts.length === 2) {
-      result[parts[0]] = parts[1]
+    const separatorIndex = line.indexOf(': ')
+    if (separatorIndex !== -1) {
+      result[line.slice(0, separatorIndex)] = line.slice(separatorIndex + 2)
     }
   }
   

@@ -122,6 +122,10 @@ export function parseOpenApi(raw: unknown): OpenApiParseResult {
 
       rules.push({
         name,
+        // `{param}` segments are matched as a wildcard by NetworkDashboard's
+        // string-pattern matcher (getMockForRequest/checkBreakpoint) — kept
+        // as a plain string (not a RegExp) so it survives the mock groups'
+        // JSON.stringify()-based localStorage persistence intact.
         urlPattern: path,
         method: method.toUpperCase(),
         enabled: true,

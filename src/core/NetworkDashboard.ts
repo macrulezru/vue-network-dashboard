@@ -32,6 +32,27 @@ const DEFAULT_STORAGE_KEY = 'vue-network-dashboard'
 const DEFAULT_MOCK_GROUPS_KEY = 'vue-network-dashboard:mockGroups'
 
 /**
+ * Converts a string `urlPattern` (mock rules / breakpoint rules) into a
+ * RegExp tested against the full request URL.
+ *
+ * `{param}` segments (as produced by the OpenAPI importer from a path
+ * template like `/users/{id}`, or typed by hand in the mock UI using the
+ * same convention) become a `[^/]+` wildcard; every other character is
+ * escaped and matched literally. Without this, `{id}` would be escaped to a
+ * literal-text requirement that no real request URL (`/users/42`) could
+ * ever satisfy.
+ */
+function stringUrlPatternToRegExp(pattern: string): RegExp {
+  const source = pattern
+    .split(/(\{[^{}]+\})/)
+    .map(segment =>
+      /^\{[^{}]+\}$/.test(segment) ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+    )
+    .join('')
+  return new RegExp(source)
+}
+
+/**
  * Main Network Logger class
  * Manages all interceptors and provides unified logging interface
  */
@@ -321,7 +342,7 @@ export class NetworkDashboard {
         if (rule.method && rule.method.toUpperCase() !== method.toUpperCase()) continue
         const pattern = rule.urlPattern instanceof RegExp
           ? rule.urlPattern
-          : new RegExp(rule.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          : stringUrlPatternToRegExp(rule.urlPattern)
         if (!pattern.test(url)) continue
         if (rule.conditions && !this.matchConditions(rule.conditions, url, requestBody, requestHeaders)) continue
         return rule
@@ -418,7 +439,7 @@ export class NetworkDashboard {
       if (r.method && r.method.toUpperCase() !== method.toUpperCase()) return false
       const pattern = r.urlPattern instanceof RegExp
         ? r.urlPattern
-        : new RegExp(r.urlPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        : stringUrlPatternToRegExp(r.urlPattern)
       return pattern.test(url)
     })
     if (!rule) return null

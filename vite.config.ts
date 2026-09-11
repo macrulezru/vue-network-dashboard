@@ -74,7 +74,6 @@ export default defineConfig(({ command }): UserConfig => {
       vue(),
       dts({
         insertTypesEntry: true,
-        rollupTypes: true,
         exclude: [
           'src/nuxt.ts',
           'src/runtime/**',

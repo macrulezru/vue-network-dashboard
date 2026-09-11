@@ -1,6 +1,6 @@
 // Core exports
 export { NetworkDashboard } from './core/NetworkDashboard'
-export { LogFormatter, HTTPFormatter, WebSocketFormatter } from './core/formatters'
+export { LogFormatter, HTTPFormatter, WebSocketFormatter, SSEFormatter } from './core/formatters'
 export type {
   UnifiedLogEntry,
   NetworkDashboardOptions,
@@ -18,9 +18,11 @@ export {
   FetchInterceptor,
   XHRInterceptor,
   WebSocketInterceptor,
+  SSEInterceptor,
   type FetchInterceptorOptions,
   type XHRInterceptorOptions,
-  type WebSocketInterceptorOptions
+  type WebSocketInterceptorOptions,
+  type SSEInterceptorOptions
 } from './interceptors'
 
 // Utils exports (for custom sanitization)

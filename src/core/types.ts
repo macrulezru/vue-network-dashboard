@@ -83,7 +83,12 @@ export interface MockRule {
   id: string
   name?: string
   enabled: boolean
-  /** String substring or RegExp tested against the full URL */
+  /**
+   * String substring or RegExp tested against the full URL.
+   * A string may include OpenAPI-style `{param}` segments (e.g.
+   * `/users/{id}`) — each one matches any single path segment
+   * (`[^/]+`), the rest of the string is matched literally.
+   */
   urlPattern: string | RegExp
   /** If omitted, matches any HTTP method */
   method?: string

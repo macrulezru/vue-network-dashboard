@@ -357,6 +357,28 @@ describe('NetworkDashboard', () => {
       logger.addMock({ name: 'Y', urlPattern: '/y', enabled: true, response: { status: 200 } })
       expect(callback).toHaveBeenCalledTimes(3) // no more calls after unsubscribe
     })
+
+    it('should match a real request URL against an OpenAPI-style {param} urlPattern', async () => {
+      const fetchLogger = new NetworkDashboard({
+        enabled: true,
+        interceptors: { fetch: true, xhr: false, websocket: false, sse: false }
+      })
+
+      fetchLogger.addMock({
+        name: 'Get user by id',
+        urlPattern: '/users/{id}',
+        method: 'GET',
+        enabled: true,
+        response: { status: 200, body: { mocked: true } }
+      })
+
+      const response = await window.fetch('/users/42', { method: 'GET' })
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ mocked: true })
+
+      fetchLogger.destroy()
+    })
   })
 
   describe('query methods with data', () => {
