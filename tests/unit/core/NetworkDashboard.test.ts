@@ -245,10 +245,74 @@ describe('NetworkDashboard', () => {
       }
       
       callbackLogger['handleLog'](log)
-      
+
       expect(consoleSpy).toHaveBeenCalled()
-      
+
       consoleSpy.mockRestore()
+      callbackLogger.destroy()
+    })
+
+    it('should call onLog again with the completed entry on handleUpdateLog (pending → complete)', () => {
+      const onLog = vi.fn()
+      const callbackLogger = new NetworkDashboard({
+        enabled: false,
+        callbacks: { onLog },
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
+      })
+
+      const pendingLog: UnifiedLogEntry = {
+        id: 'test',
+        type: 'http',
+        startTime: Date.now(),
+        endTime: null,
+        duration: null,
+        url: 'https://api.example.com/test',
+        method: 'GET',
+        http: { status: null, statusText: null, protocol: null },
+        websocket: null,
+        sse: null,
+        requestHeaders: {},
+        responseHeaders: {},
+        request: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+        response: { body: null, bodyRaw: null, bodySize: null, bodyType: null },
+        error: { occurred: false, message: null, name: null, stack: null },
+        metadata: { clientType: 'fetch', redirected: false, retryCount: 0, timestamp: new Date().toISOString(), pending: true }
+      }
+
+      callbackLogger['handleLog'](pendingLog)
+      expect(onLog).toHaveBeenCalledTimes(1)
+      expect(onLog).toHaveBeenLastCalledWith(expect.objectContaining({ metadata: expect.objectContaining({ pending: true }) }))
+
+      callbackLogger['handleUpdateLog']('test', {
+        http: { status: 200, statusText: 'OK', protocol: 'http/1.1' },
+        duration: 42,
+        endTime: pendingLog.startTime + 42,
+        metadata: { ...pendingLog.metadata, pending: false }
+      })
+
+      expect(onLog).toHaveBeenCalledTimes(2)
+      expect(onLog).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          http: expect.objectContaining({ status: 200 }),
+          duration: 42,
+          metadata: expect.objectContaining({ pending: false })
+        })
+      )
+
+      callbackLogger.destroy()
+    })
+
+    it('should not call onLog for handleUpdateLog when the entry id is unknown', () => {
+      const onLog = vi.fn()
+      const callbackLogger = new NetworkDashboard({
+        enabled: false,
+        callbacks: { onLog },
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
+      })
+
+      callbackLogger['handleUpdateLog']('nonexistent-id', { duration: 1 })
+
+      expect(onLog).not.toHaveBeenCalled()
       callbackLogger.destroy()
     })
   })
@@ -356,6 +420,28 @@ describe('NetworkDashboard', () => {
       unsubscribe()
       logger.addMock({ name: 'Y', urlPattern: '/y', enabled: true, response: { status: 200 } })
       expect(callback).toHaveBeenCalledTimes(3) // no more calls after unsubscribe
+    })
+
+    it('should match a real request URL against an OpenAPI-style {param} urlPattern', async () => {
+      const fetchLogger = new NetworkDashboard({
+        enabled: true,
+        interceptors: { fetch: true, xhr: false, websocket: false, sse: false }
+      })
+
+      fetchLogger.addMock({
+        name: 'Get user by id',
+        urlPattern: '/users/{id}',
+        method: 'GET',
+        enabled: true,
+        response: { status: 200, body: { mocked: true } }
+      })
+
+      const response = await window.fetch('/users/42', { method: 'GET' })
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ mocked: true })
+
+      fetchLogger.destroy()
     })
   })
 

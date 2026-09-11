@@ -60,6 +60,11 @@ export const createSentryAdapter = (
 
   return {
     onLog(entry: UnifiedLogEntry) {
+      // onLog fires once with the pending snapshot (right when a fetch/XHR
+      // request starts) and again with the completed entry once it
+      // resolves — skip the pending call so each request produces exactly
+      // one breadcrumb, built from the real outcome (status/duration/error).
+      if (entry.metadata?.pending) return
       if (filter && !filter(entry)) return
 
       const isError = entry.error.occurred || (entry.http?.status ?? 0) >= errorStatusThreshold
