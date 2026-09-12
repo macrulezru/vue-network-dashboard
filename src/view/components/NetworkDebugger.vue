@@ -4,6 +4,7 @@ import '../styles/debugger.scss'
 import { ref, computed, watch, inject, onMounted, onUnmounted, type CSSProperties } from 'vue'
 import { useNetworkDashboard } from '../../plugins/vuePlugin'
 import type { NetworkDashboardOptions, UnifiedLogEntry } from '../../core/types'
+import type { NetworkDebuggerProps } from '../types'
 import LogEntry from './LogEntry.vue'
 import FilterBar from './FilterBar.vue'
 import StatsPanel from './StatsPanel.vue'
@@ -14,18 +15,6 @@ import ExportModal from './ExportModal.vue'
 import SessionComparePanel from './SessionComparePanel.vue'
 import ReplayModal from './ReplayModal.vue'
 import BreakpointPanel from './BreakpointPanel.vue'
-
-export interface NetworkDebuggerProps {
-  defaultVisible?: boolean
-  defaultPinned?: boolean
-  hotkey?: string
-  hotkeyModifiers?: {
-    ctrl?: boolean
-    alt?: boolean
-    shift?: boolean
-    meta?: boolean
-  }
-}
 
 const pluginUi = inject<NetworkDashboardOptions['ui']>('networkDashboardUi', {})
 

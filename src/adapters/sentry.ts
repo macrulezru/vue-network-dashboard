@@ -9,7 +9,7 @@ import type { NetworkDashboardOptions, UnifiedLogEntry } from '../core/types'
  * Usage:
  * ```ts
  * import * as Sentry from '@sentry/vue'
- * import { createSentryAdapter } from 'vue-network-dashboard/adapters/sentry'
+ * import { createSentryAdapter } from 'vue-network-dashboard'
  *
  * app.use(NetworkDashboardPlugin, {
  *   callbacks: createSentryAdapter(Sentry)

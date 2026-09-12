@@ -1,5 +1,5 @@
 import NetworkDebugger from './components/NetworkDebugger.vue'
-import type { NetworkDebuggerProps } from './components/NetworkDebugger.vue'
+import type { NetworkDebuggerProps } from './types'
 
 // Export component
 export { NetworkDebugger }
