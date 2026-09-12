@@ -10,7 +10,10 @@ export interface HotkeyOptions {
 }
 
 /**
- * Composable for handling keyboard shortcuts
+ * Standalone composable for handling a single keyboard shortcut — useful if
+ * you're building your own custom debugger UI. `<NetworkDebugger>` itself
+ * does NOT use this composable: its own toggle hotkey is handled inline
+ * (integrated with its resolved-hotkey/modifier config from plugin options).
  */
 export const useHotkey = (options: HotkeyOptions) => {
   const handleKeydown = (event: KeyboardEvent) => {

@@ -167,16 +167,36 @@ describe('NetworkDashboard', () => {
       }])
       
       localStorageMock.getItem.mockReturnValue(savedLogs)
-      
+
       const storageLogger = new NetworkDashboard({
         enabled: false,
         persistToStorage: true,
         interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
       })
-      
+
       expect(storageLogger.getSize()).toBe(1)
-      
+
       storageLogger.destroy()
+      // The global beforeEach's vi.clearAllMocks() only clears call history,
+      // not a persistent mockReturnValue() override — without this, every
+      // later test's localStorage.getItem() would keep returning savedLogs.
+      localStorageMock.getItem.mockReset()
+    })
+
+    it('does not leak the previous test\'s mocked localStorage contents into a fresh instance', () => {
+      // Regression: localStorageMock.getItem.mockReturnValue(savedLogs) set in
+      // the test above is a persistent override that vi.clearAllMocks() (the
+      // global beforeEach) does not clear — without an explicit reset, this
+      // brand-new instance would silently inherit that stale data.
+      const freshLogger = new NetworkDashboard({
+        enabled: false,
+        persistToStorage: true,
+        interceptors: { fetch: false, xhr: false, websocket: false, sse: false }
+      })
+
+      expect(freshLogger.getSize()).toBe(0)
+
+      freshLogger.destroy()
     })
   })
   

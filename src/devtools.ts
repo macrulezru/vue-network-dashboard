@@ -7,8 +7,7 @@
  * Call this once after installing the plugin:
  *
  * ```ts
- * import { setupDevtools } from 'vue-network-dashboard/devtools'
- * import { useNetworkDashboard } from 'vue-network-dashboard'
+ * import { setupDevtools, useNetworkDashboard } from 'vue-network-dashboard'
  *
  * const app = createApp(App)
  * app.use(NetworkDashboardPlugin)

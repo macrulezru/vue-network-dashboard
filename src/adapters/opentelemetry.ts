@@ -9,7 +9,7 @@ import type { NetworkDashboardOptions, UnifiedLogEntry } from '../core/types'
  * Usage:
  * ```ts
  * import { trace } from '@opentelemetry/api'
- * import { createOpenTelemetryAdapter } from 'vue-network-dashboard/adapters/opentelemetry'
+ * import { createOpenTelemetryAdapter } from 'vue-network-dashboard'
  *
  * const tracer = trace.getTracer('vue-network-dashboard')
  *
