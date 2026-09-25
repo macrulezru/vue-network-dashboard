@@ -136,6 +136,7 @@ const { addMock, removeMock } = useNetworkDashboard()
 
 const rule = addMock({
   name: 'Mock /api/users',
+  enabled: true,
   urlPattern: '/api/users',
   method: 'GET',
   response: {
